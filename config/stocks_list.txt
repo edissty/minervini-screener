@@ -1,46 +1,57 @@
 # DAFTAR SAHAM UNTUK SCREENING MINERVINI
-# Format: satu kode saham per baris (tanpa .JK)
-# Baris yang diawali # akan diabaikan
+# Format: kode saham + .JK (WAJIB)
+# Contoh: BBCA.JK, BBRI.JK, dll
 
 # ===== SAHAM BLUE CHIP =====
-BBCA  # Bank Central Asia
-BBRI  # Bank Rakyat Indonesia
-BMRI  # Bank Mandiri
-BBNI  # Bank Negara Indonesia
-TLKM  # Telkom Indonesia
-ASII  # Astra International
-UNVR  # Unilever Indonesia
-ICBP  # Indofood CBP
-INDF  # Indofood Sukses Makmur
-KLBF  # Kalbe Farma
+BBCA.JK  # Bank Central Asia
+BBRI.JK  # Bank Rakyat Indonesia
+BMRI.JK  # Bank Mandiri
+BBNI.JK  # Bank Negara Indonesia
+TLKM.JK  # Telkom Indonesia
+ASII.JK  # Astra International
+UNVR.JK  # Unilever Indonesia
+ICBP.JK  # Indofood CBP
+INDF.JK  # Indofood Sukses Makmur
+KLBF.JK  # Kalbe Farma
 
 # ===== SAHAM TAMBANG =====
-ANTM  # Aneka Tambang
-ADRO  # Adaro Energy
-ITMG  # Indo Tambangraya Megah
-PTBA  # Bukit Asam
-MDKA  # Merdeka Copper Gold
+ANTM.JK  # Aneka Tambang
+ADRO.JK  # Adaro Energy
+ITMG.JK  # Indo Tambangraya Megah
+PTBA.JK  # Bukit Asam
+MDKA.JK  # Merdeka Copper Gold
 
 # ===== SAHAM INFRASTRUKTUR =====
-JSMR  # Jasa Marga
-WSKT  # Waskita Karya
-PTPP  # PP Persero
-WIKA  # Wijaya Karya
-PGAS  # Perusahaan Gas Negara
+JSMR.JK  # Jasa Marga
+WSKT.JK  # Waskita Karya
+PTPP.JK  # PP Persero
+WIKA.JK  # Wijaya Karya
+PGAS.JK  # Perusahaan Gas Negara
 
 # ===== SAHAM KONSUMER =====
-CPIN  # Charoen Pokphand
-JPFA  # Japfa Comfeed
-GGRM  # Gudang Garam
-HMSP  # H.M. Sampoerna
+CPIN.JK  # Charoen Pokphand
+JPFA.JK  # Japfa Comfeed
+GGRM.JK  # Gudang Garam
+HMSP.JK  # H.M. Sampoerna
 
 # ===== SAHAM RETAIL =====
-MAPI  # Mitra Adiperkasa
-ERAA  # Erajaya Swasembada
-ACES  # Ace Hardware
-LPPF  # Matahari Department Store
+MAPI.JK  # Mitra Adiperkasa
+ERAA.JK  # Erajaya Swasembada
+ACES.JK  # Ace Hardware
+LPPF.JK  # Matahari Department Store
 
 # ===== SAHAM TEKNOLOGI =====
-GOTO  # GoTo Gojek Tokopedia
-BUKA  # Bukalapak
-MTDL  # Metrodata Electronics
+GOTO.JK  # GoTo Gojek Tokopedia
+BUKA.JK  # Bukalapak
+MTDL.JK  # Metrodata Electronics
+
+# ===== SAHAM PROPERTI =====
+BSDE.JK  # Bumi Serpong Damai
+PWON.JK  # Pakuwon Jati
+LPKR.JK  # Lippo Karawaci
+CTRA.JK  # Ciputra Development
+
+# ===== SAHAM TRANSPORTASI =====
+BIRD.JK  # Blue Bird
+TAXI.JK  # Express Transindo
+CMPP.JK  # AirAsia Indonesia
