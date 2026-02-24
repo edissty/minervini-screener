@@ -32,3 +32,4 @@ jobs:
         with:
           name: screening-results
           path: results/
+          if-no-files-found: warn
