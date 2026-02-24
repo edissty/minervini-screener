@@ -29,7 +29,7 @@ def main():
     if email_to:
         print(f"✓ EMAIL_TO: {email_to}")
     else:
-        print("✗ EMAIL_TO: TIDAK ADA")
+        print("✗ EMAIL_TO: TIDAK ADA (akan pakai default)")
     
     # BACA DAFTAR SAHAM
     stocks_file = "config/stocks_list.txt"
