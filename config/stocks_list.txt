@@ -1,0 +1,45 @@
+# Daftar Saham Indonesia untuk Screening
+# Format: satu saham per baris (tanpa .JK)
+
+# SAHAM BLUE CHIP
+BBCA  # Bank Central Asia
+BBRI  # Bank Rakyat Indonesia
+BMRI  # Bank Mandiri
+BBNI  # Bank Negara Indonesia
+TLKM  # Telkom Indonesia
+ASII  # Astra International
+UNVR  # Unilever Indonesia
+ICBP  # Indofood CBP
+INDF  # Indofood Sukses Makmur
+KLBF  # Kalbe Farma
+
+# SEKTOR TAMBANG
+ANTM  # Aneka Tambang
+ADRO  # Adaro Energy
+ITMG  # Indo Tambangraya Megah
+PTBA  # Bukit Asam
+MDKA  # Merdeka Copper Gold
+
+# SEKTOR INFRASTRUKTUR
+JSMR  # Jasa Marga
+WSKT  # Waskita Karya
+PTPP  # PP Persero
+WIKA  # Wijaya Karya
+PGAS  # Perusahaan Gas Negara
+
+# SEKTOR KONSUMER
+CPIN  # Charoen Pokphand
+JPFA  # Japfa Comfeed
+GGRM  # Gudang Garam
+HMSP  # H.M. Sampoerna
+
+# SEKTOR RETAIL
+MAPI  # Mitra Adiperkasa
+ERAA  # Erajaya Swasembada
+ACES  # Ace Hardware
+LPPF  # Matahari
+
+# SEKTOR TEKNOLOGI
+GOTO  # GoTo
+BUKA  # Bukalapak
+MTDL  # Metrodata
