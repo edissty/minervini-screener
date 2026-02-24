@@ -1,7 +1,8 @@
-# Daftar Saham Indonesia untuk Screening
-# Format: satu saham per baris (tanpa .JK)
+# DAFTAR SAHAM UNTUK SCREENING MINERVINI
+# Format: satu kode saham per baris (tanpa .JK)
+# Baris yang diawali # akan diabaikan
 
-# SAHAM BLUE CHIP
+# ===== SAHAM BLUE CHIP =====
 BBCA  # Bank Central Asia
 BBRI  # Bank Rakyat Indonesia
 BMRI  # Bank Mandiri
@@ -13,33 +14,33 @@ ICBP  # Indofood CBP
 INDF  # Indofood Sukses Makmur
 KLBF  # Kalbe Farma
 
-# SEKTOR TAMBANG
+# ===== SAHAM TAMBANG =====
 ANTM  # Aneka Tambang
 ADRO  # Adaro Energy
 ITMG  # Indo Tambangraya Megah
 PTBA  # Bukit Asam
 MDKA  # Merdeka Copper Gold
 
-# SEKTOR INFRASTRUKTUR
+# ===== SAHAM INFRASTRUKTUR =====
 JSMR  # Jasa Marga
 WSKT  # Waskita Karya
 PTPP  # PP Persero
 WIKA  # Wijaya Karya
 PGAS  # Perusahaan Gas Negara
 
-# SEKTOR KONSUMER
+# ===== SAHAM KONSUMER =====
 CPIN  # Charoen Pokphand
 JPFA  # Japfa Comfeed
 GGRM  # Gudang Garam
 HMSP  # H.M. Sampoerna
 
-# SEKTOR RETAIL
+# ===== SAHAM RETAIL =====
 MAPI  # Mitra Adiperkasa
 ERAA  # Erajaya Swasembada
 ACES  # Ace Hardware
-LPPF  # Matahari
+LPPF  # Matahari Department Store
 
-# SEKTOR TEKNOLOGI
-GOTO  # GoTo
+# ===== SAHAM TEKNOLOGI =====
+GOTO  # GoTo Gojek Tokopedia
 BUKA  # Bukalapak
-MTDL  # Metrodata
+MTDL  # Metrodata Electronics
