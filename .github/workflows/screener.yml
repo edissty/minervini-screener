@@ -2,41 +2,259 @@ name: Minervini Stock Screener
 
 on:
   schedule:
+    # Menjalankan setiap hari jam 8 pagi dan 4 sore WIB
+    # UTC: 1 = WIB 8, 9 = WIB 16
     - cron: '0 1,9 * * *'
+  
+  # Bisa dijalankan manual dari GitHub
   workflow_dispatch:
+  
+  # Bisa dijalankan setiap push ke branch main
+  push:
+    branches: [ main ]
 
 jobs:
   run-screener:
+    name: Run Minervini Screening
     runs-on: ubuntu-latest
     
+    # Timeout 10 menit (mencegah running terlalu lama)
+    timeout-minutes: 10
+    
+    strategy:
+      matrix:
+        python-version: ['3.10']
+    
     steps:
+    # 1. CHECKOUT CODE
     - name: Checkout repository
       uses: actions/checkout@v4
-      
-    - name: Setup Python
+      with:
+        fetch-depth: 1  # Ambil history terbaru saja
+    
+    # 2. SETUP PYTHON
+    - name: Setup Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
-        
-    - name: Install dependencies
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'  # Cache dependencies biar lebih cepat
+    
+    # 3. UPGRADE PIP
+    - name: Upgrade pip
       run: |
         python -m pip install --upgrade pip
+        python -m pip install --upgrade setuptools wheel
+    
+    # 4. INSTALL DEPENDENCIES
+    - name: Install dependencies
+      run: |
         pip install yfinance pandas numpy
         
+    # 5. CEK KONEKSI YAHOO FINANCE
+    - name: Test Yahoo Finance connection
+      run: |
+        python -c "
+import yfinance as yf
+print('✓ Testing Yahoo Finance connection...')
+try:
+    stock = yf.Ticker('BBCA.JK')
+    data = stock.history(period='1d')
+    print(f'✓ Connection successful: {len(data)} data points')
+except Exception as e:
+    print(f'✗ Connection failed: {e}')
+    exit(1)
+"
+    
+    # 6. RUN SCREENER
     - name: Run Minervini Screener
+      id: run_screener
       env:
         EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
         EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
         EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        TZ: 'Asia/Jakarta'  # Set timezone ke WIB
       run: |
+        echo "::group::Screener Output"
         python main.py
+        echo "::endgroup::"
         
-    - name: Upload results
+        # Cek apakah file hasil dibuat
+        if ls results/*.csv 1> /dev/null 2>&1; then
+          echo "✓ Hasil screening ditemukan"
+          echo "has_files=true" >> $GITHUB_OUTPUT
+        else
+          echo "⚠ Tidak ada file hasil screening"
+          echo "has_files=false" >> $GITHUB_OUTPUT
+        fi
+    
+    # 7. TAMPILKAN DAFTAR FILE HASIL
+    - name: List result files
+      if: steps.run_screener.outputs.has_files == 'true'
+      run: |
+        echo "📁 File hasil screening:"
+        ls -la results/
+        echo ""
+        echo "📊 Preview CSV pertama:"
+        head -n 5 results/*.csv 2>/dev/null || echo "Tidak bisa preview"
+    
+    # 8. UPLOAD HASIL KE ARTIFACTS
+    - name: Upload screening results
+      if: always()  # Tetap upload meskipun ada error
       uses: actions/upload-artifact@v4
       with:
-        name: screening-results
-        path: results/
+        name: screening-results-${{ github.run_id }}
+        path: |
+          results/
+          !results/**/*.tmp
         retention-days: 7
         if-no-files-found: warn
         compression-level: 6
-        overwrite: true
+    
+    # 9. NOTIFIKASI KE EMAIL (VIA SCRIPT PYTHON)
+    - name: Send email notification
+      if: always()
+      env:
+        EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+        EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+        EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        RUN_STATUS: ${{ job.status }}
+        RUN_ID: ${{ github.run_id }}
+        RUN_NUMBER: ${{ github.run_number }}
+      run: |
+        python -c "
+import os
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from datetime import datetime
+
+# Ambil environment variables
+email_from = os.environ.get('EMAIL_FROM')
+email_password = os.environ.get('EMAIL_PASSWORD')
+email_to = os.environ.get('EMAIL_TO', 'edissty@gmail.com')
+run_status = os.environ.get('RUN_STATUS', 'unknown')
+run_id = os.environ.get('RUN_ID', 'unknown')
+run_number = os.environ.get('RUN_NUMBER', 'unknown')
+
+if not email_from or not email_password:
+    print('⚠ Email tidak dikonfigurasi, lewati notifikasi')
+    exit(0)
+
+# Cek apakah ada file hasil
+has_results = False
+try:
+    import glob
+    csv_files = glob.glob('results/*.csv')
+    has_results = len(csv_files) > 0
+except:
+    pass
+
+# Buat pesan email
+msg = MIMEMultipart()
+msg['From'] = email_from
+msg['To'] = email_to
+msg['Subject'] = f"[{run_status.upper()}] Minervini Screener - Run #{run_number} - {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+
+# Status icon
+status_icon = '✅' if run_status == 'success' else '❌' if run_status == 'failure' else '⚠️'
+
+# Body email
+body = f'''
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; }}
+        .success {{ color: green; }}
+        .failure {{ color: red; }}
+        .warning {{ color: orange; }}
+        .box {{ 
+            border: 1px solid #ddd; 
+            padding: 15px; 
+            border-radius: 5px;
+            margin: 10px 0;
+        }}
+        .success-box {{ background-color: #d4edda; }}
+        .failure-box {{ background-color: #f8d7da; }}
+        .warning-box {{ background-color: #fff3cd; }}
+    </style>
+</head>
+<body>
+    <h2>{status_icon} Minervini Stock Screener - Run #{run_number}</h2>
+    
+    <div class="box {
+        'success-box' if run_status == 'success' else 
+        'failure-box' if run_status == 'failure' else 
+        'warning-box'
+    }">
+        <h3>Status: {run_status.upper()}</h3>
+        <p><strong>Waktu:</strong> {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}</p>
+        <p><strong>Run ID:</strong> {run_id}</p>
+        <p><strong>Hasil Screening:</strong> {'Ada' if has_results else 'Tidak ada'}</p>
+    </div>
+    
+    <div class="box">
+        <h3>📊 Ringkasan</h3>
+        <ul>
+            <li>Status: {run_status}</li>
+            <li>File hasil: {'Tersedia' if has_results else 'Tidak ada'}</li>
+            <li>Lihat detail di GitHub Actions</li>
+        </ul>
+    </div>
+    
+    <div class="box">
+        <h3>🔗 Link Penting</h3>
+        <ul>
+            <li><a href="https://github.com/${{{{ github.repository }}}}/actions/runs/{run_id}">Lihat Log Actions</a></li>
+            <li><a href="https://github.com/${{{{ github.repository }}}}/blob/main/config/stocks_list.txt">Edit Daftar Saham</a></li>
+        </ul>
+    </div>
+    
+    <p><i>Email ini dikirim otomatis oleh GitHub Actions</i></p>
+</body>
+</html>
+'''
+
+msg.attach(MIMEText(body, 'html'))
+
+# Kirim email
+try:
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.starttls()
+    server.login(email_from, email_password)
+    server.send_message(msg)
+    server.quit()
+    print('✓ Email notifikasi terkirim')
+except Exception as e:
+    print(f'✗ Gagal kirim email: {e}')
+"
+    
+    # 10. CLEANUP (OPSIONAL)
+    - name: Cleanup old artifacts
+      if: always()
+      run: |
+        echo "✓ Cleanup selesai"
+    
+    # 11. SUMMARY
+    - name: Create summary
+      if: always()
+      run: |
+        echo "## 📊 Minervini Screener Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Status | Detail |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| **Run Status** | ${{ job.status }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Run Number** | ${{ github.run_number }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Run ID** | ${{ github.run_id }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Trigger** | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Branch** | ${{ github.ref_name }} |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Cek file hasil
+        if ls results/*.csv 1> /dev/null 2>&1; then
+          echo "### ✅ File hasil tersedia:" >> $GITHUB_STEP_SUMMARY
+          for file in results/*.csv; do
+            echo "- \`$file\`" >> $GITHUB_STEP_SUMMARY
+          done
+        else
+          echo "### ⚠ Tidak ada file hasil screening" >> $GITHUB_STEP_SUMMARY
+        fi
