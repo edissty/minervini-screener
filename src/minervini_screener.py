@@ -233,6 +233,7 @@ class MinerviniScreener:
                         from_low = criteria.get('_from_low', 0)
                         from_high = criteria.get('_from_high', 0)
                         
+                        # PERBAIKAN DI SINI - kutipan sudah benar semua
                         result = {
                             'Ticker': ticker.replace('.JK', ''),
                             'Data': f"{len(df)}hr",
@@ -240,8 +241,8 @@ class MinerviniScreener:
                             'Status': '8/8' if total_met == 8 else '7/8',
                             'Harga': price_str,
                             'RS': f"{rs:.0f}",
-                            'Low': f"{from_low:.0f}%',
-                            'High': f"{from_high:.0f}%',
+                            'Low': f"{from_low:.0f}%",
+                            'High': f"{from_high:.0f}%",
                             'C1': '✓' if criteria.get('C1') else '✗',
                             'C2': '✓' if criteria.get('C2') else '✗',
                             'C3': '✓' if criteria.get('C3') else '✗',
