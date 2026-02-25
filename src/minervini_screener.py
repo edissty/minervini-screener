@@ -53,7 +53,7 @@ class MinerviniScreener:
         self.last_request_time = datetime.now()
     
     def get_stock_data(self, ticker, period='1y'):
-        """Ambil data saham dengan format utama saja"""
+        """Ambil data saham - TANPA nambah .JK jika sudah ada"""
         max_retries = 2
         
         # Bersihkan ticker dari komentar
@@ -62,11 +62,26 @@ class MinerviniScreener:
         
         original_ticker = ticker
         
-        # Format utama
-        ticker_formats = [
-            f"{ticker}.JK",        # ADRO.JK
-            ticker,                  # ADRO
-        ]
+        # Format yang akan dicoba - JANGAN nambah .JK jika sudah ada
+        ticker_formats = []
+        
+        if ticker.endswith('.JK'):
+            # Jika sudah pakai .JK, gunakan apa adanya
+            ticker_formats = [
+                ticker,                    # ADRO.JK
+                ticker.replace('.JK', ''),  # ADRO (tanpa .JK)
+                f"JK:{ticker.replace('.JK', '')}"  # JK:ADRO
+            ]
+        else:
+            # Jika belum pakai .JK, tambahkan
+            ticker_formats = [
+                f"{ticker}.JK",  # ADRO.JK
+                ticker,            # ADRO
+                f"JK:{ticker}"     # JK:ADRO
+            ]
+        
+        # Hapus duplikat
+        ticker_formats = list(dict.fromkeys(ticker_formats))
         
         periods_to_try = ['2y', '1y']
         
@@ -85,7 +100,7 @@ class MinerviniScreener:
                         df = stock.history(period=period_try, timeout=10)
                         
                         if df is not None and not df.empty:
-                            print(f"    ✅ {len(df)} data points")
+                            print(f"    ✅ {ticker_format} = {len(df)} data points")
                             self.consecutive_errors = 0
                             
                             if len(df) >= 200:
@@ -99,13 +114,17 @@ class MinerviniScreener:
                                 return None
                                 
                     except Exception as e:
-                        print(f"    Debug: {str(e)[:30]}...")
+                        print(f"    Debug: {ticker_format} error: {str(e)[:30]}...")
                         continue
                     
                     time.sleep(0.2)
             
             if attempt == 0:
-                ticker_formats = [f"JK:{ticker}", f"{ticker}.JKT"]
+                # Coba format alternatif di percobaan kedua
+                if ticker.endswith('.JK'):
+                    ticker_formats = [f"JK:{ticker.replace('.JK', '')}"]
+                else:
+                    ticker_formats = [f"JK:{ticker}"]
                 time.sleep(2)
         
         self.saham_error.append(original_ticker)
@@ -193,7 +212,7 @@ class MinerviniScreener:
         self.request_count = 0
         
         print(f"\n{'='*70}")
-        print(f"⚡ MINERVINI SCREENER - 220 SAHAM SYARIAH")
+        print(f"⚡ MINERVINI SCREENER - SAHAM SYARIAH")
         print(f"{'='*70}")
         print(f"Total saham: {self.total_saham}")
         print(f"Target waktu: {self.total_saham * 1.5 / 60:.1f} menit")
@@ -233,9 +252,11 @@ class MinerviniScreener:
                         from_low = criteria.get('_from_low', 0)
                         from_high = criteria.get('_from_high', 0)
                         
-                        # PERBAIKAN DI SINI - kutipan sudah benar semua
+                        # Ticker tanpa .JK untuk tampilan
+                        display_ticker = ticker.replace('.JK', '') if ticker.endswith('.JK') else ticker
+                        
                         result = {
-                            'Ticker': ticker.replace('.JK', ''),
+                            'Ticker': display_ticker,
                             'Data': f"{len(df)}hr",
                             'Skor': f"{total_met}/8",
                             'Status': '8/8' if total_met == 8 else '7/8',
