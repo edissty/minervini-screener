@@ -1,44 +1,294 @@
-# DAFTAR SAHAM SYARIAH - FORMAT BERSIH (HANYA KODE)
-ADRO.JK
-ANTM.JK
-ASII.JK
-BBCA.JK
-BBNI.JK
-BBRI.JK
-BMRI.JK
-BRIS.JK
-CPIN.JK
-ERAA.JK
-EXCL.JK
-GOTO.JK
-HMSP.JK
-ICBP.JK
-INCO.JK
-INDF.JK
-INKP.JK
-INTP.JK
-ISAT.JK
-ITMG.JK
-JPFA.JK
-JSMR.JK
-KLBF.JK
-MAPI.JK
-MDKA.JK
-MIKA.JK
-MTDL.JK
-MYOR.JK
-PGAS.JK
-PTBA.JK
-PTPP.JK
-PWON.JK
-SIDO.JK
-SILO.JK
-SMGR.JK
-TBIG.JK
-TKIM.JK
-TLKM.JK
-TOWR.JK
-UNTR.JK
-UNVR.JK
-WIKA.JK
-WSKT.JK
+# DAFTAR LENGKAP SAHAM SYARIAH INDONESIA
+# Format: kode.JK (WAJIB)
+# Total: 200+ saham syariah paling likuid
+
+# ==================== SEKTOR ENERGI (25 SAHAM) ====================
+ADRO.JK  # Alamtri Resources Indonesia
+ADMR.JK  # Adaro Minerals Indonesia
+AKRA.JK  # AKR Corporindo
+BUMI.JK  # Bumi Resources
+BYAN.JK  # Bayan Resources
+DEWA.JK  # Darma Henwa
+DOID.JK  # Delta Dunia Makmur
+ELSA.JK  # Elnusa
+ENRG.JK  # Energi Mega Persada
+GEMS.JK  # Golden Energy Mines
+HRUM.JK  # Harum Energy
+INDY.JK  # Indika Energy
+ITMG.JK  # Indo Tambangraya Megah
+KKGI.JK  # Resource Alam Indonesia
+MEDC.JK  # Medco Energi Internasional
+MITI.JK  # Mitra Investindo
+MYOH.JK  # Samindo Resources
+PGAS.JK  # Perusahaan Gas Negara
+PGEO.JK  # Pertamina Geothermal Energy
+PTBA.JK  # Bukit Asam
+PTRO.JK  # Petrosea
+RAFI.JK  # Sumber Mineral Global Abadi
+SGER.JK  # Sumber Global Energy
+TOBA.JK  # TBS Energi Utama
+TPMA.JK  # Trans Power Marine
+
+# ==================== SEKTOR BAHAN BAKU (30 SAHAM) ====================
+ANTM.JK  # Aneka Tambang
+ARNA.JK  # Arwana Citramulia
+BAJA.JK  # Saranacentral Bajatama
+BRMS.JK  # Bumi Resources Minerals
+DKFT.JK  # Central Omega Resources
+INCO.JK  # Vale Indonesia
+INKP.JK  # Indah Kiat Pulp & Paper
+INTP.JK  # Indocement Tunggal Prakarsa
+KDSI.JK  # Kedawung Setia
+MDKA.JK  # Merdeka Copper Gold
+NCKL.JK  # Trimegah Bangun Persada
+PURE.JK  # Trinitan Metals and Minerals
+PSAB.JK  # J Resources Asia
+SMCB.JK  # Solusi Bangun Indonesia
+SMGR.JK  # Semen Indonesia
+SPMA.JK  # Suparma
+TINS.JK  # Timah
+TKIM.JK  # Pabrik Kertas Tjiwi Kimia
+ZINC.JK  # Kapuas Prima Coal
+KBRI.JK  # Kertas Basuki Rachmat
+KBLI.JK  # KMI Wire & Cable
+KBLM.JK  # Kabelindo Murni
+LMSH.JK  # Lionmesh Prima
+LION.JK  # Lion Metal Works
+NIKL.JK  # Pelat Timah Nusantara
+PICO.JK  # Pelangi Indah Canindo
+PRAS.JK  # Prima Alloy Steel
+SCCO.JK  # Supreme Cable Manufacturing
+TOTO.JK  # Surya Toto Indonesia
+TRST.JK  # Trias Sentosa
+
+# ==================== SEKTOR PERINDUSTRIAN (20 SAHAM) ====================
+ACST.JK  # Acset Indonusa
+ADHI.JK  # Adhi Karya
+ASII.JK  # Astra International
+BUKK.JK  # Bukaka Teknik Utama
+INDR.JK  # Indo-Rama Synthetics
+KRAH.JK  # Grand Kartech
+LPIN.JK  # Multi Prima Sejahtera
+MTLA.JK  # Metropolitan Land
+PTPP.JK  # PP Persero
+PURE.JK  # Trinitan Metals
+TOTL.JK  # Total Bangun Persada
+TRIS.JK  # Trisula International
+UNIC.JK  # Unggul Indah Cahaya
+UNTR.JK  # United Tractors
+WEGE.JK  # Wijaya Karya Bangunan Gedung
+WIKA.JK  # Wijaya Karya
+WSKT.JK  # Waskita Karya
+WSBP.JK  # Waskita Beton Precast
+WTON.JK  # Wijaya Karya Beton
+BUDI.JK  # Budi Starch & Sweetener
+
+# ==================== SEKTOR KONSUMEN PRIMER (40 SAHAM) ====================
+AALI.JK  # Astra Agro Lestari
+ADES.JK  # Akasha Wira
+BISI.JK  # BISI International
+BWPT.JK  # Eagle High Plantations
+CAMP.JK  # Campina Ice Cream
+CLEO.JK  # Sariguna Primatirta
+CPIN.JK  # Charoen Pokphand
+DLTA.JK  # Delta Djakarta
+DVLA.JK  # Darya Varia
+GZCO.JK  # Gozco Plantations
+HMSP.JK  # H.M. Sampoerna
+ICBP.JK  # Indofood CBP
+INDF.JK  # Indofood Sukses Makmur
+JAWA.JK  # Jaya Agra Wattie
+JPFA.JK  # Japfa Comfeed
+KAEF.JK  # Kimia Farma
+KLBF.JK  # Kalbe Farma
+LSIP.JK  # PP London Sumatra
+MAIN.JK  # Malindo Feedmil
+MERK.JK  # Merck Indonesia
+MGRO.JK  # Mahkota Group
+MLBI.JK  # Multi Bintang Indonesia
+MYOR.JK  # Mayora Indah
+PALM.JK  # Provident Agro
+PYFA.JK  # Pyridam Farma
+ROTI.JK  # Nippon Indosari
+SIDO.JK  # Sido Muncul
+SIMP.JK  # Salim Ivomas Pratama
+SGRO.JK  # Sampoerna Agro
+SKBM.JK  # Sekar Bumi
+SKLT.JK  # Sekar Laut
+SSMS.JK  # Sawit Sumbermas
+STTP.JK  # Siantar Top
+TCID.JK  # Mandom Indonesia
+TSPC.JK  # Tempo Scan Pacific
+ULTJ.JK  # Ultra Jaya
+UNVR.JK  # Unilever Indonesia
+VICI.JK  # Victoria Care Indonesia
+WIIM.JK  # Wismilak Inti Makmur
+DMND.JK  # Diamond Food Indonesia
+
+# ==================== SEKTOR KONSUMEN NON-PRIMER (30 SAHAM) ====================
+ACES.JK  # Ace Hardware
+AMRT.JK  # Sumber Alfaria Trijaya
+AUTO.JK  # Astra Otoparts
+BRAM.JK  # Indo Kordsa
+CSAP.JK  # Catur Sentosa Adiprana
+DIVA.JK  # Distribusi Voucher Nusantara
+ERAA.JK  # Erajaya Swasembada
+GJTL.JK  # Gajah Tunggal
+HEXA.JK  # Hexindo Adiperkasa
+IMAS.JK  # Indomobil Sukses
+INTA.JK  # Intraco Penta
+ITIC.JK  # Indonesian Tobacco
+LPPF.JK  # Matahari Department Store
+MAPI.JK  # Mitra Adiperkasa
+MAPB.JK  # MAP Boga Adiperkasa
+MBTO.JK  # Martina Berto
+MCOR.JK  # Bank China Construction
+MIDI.JK  # Midi Utama Indonesia
+MIRA.JK  # Mitra International
+MPMX.JK  # Mitra Pinasthika Mustika
+MSIN.JK  # MNC Studios
+NIPS.JK  # Nipress
+PTSP.JK  # Pioneerindo Gourmet
+RALS.JK  # Ramayana Lestari
+RANC.JK  # Supra Boga Lestari
+SMSM.JK  # Selamat Sempurna
+SONA.JK  # Sona Topas Tourism
+TRIO.JK  # Trikomsel Oke
+TURI.JK  # Tunas Ridean
+VOKS.JK  # Voksel Electric
+
+# ==================== SEKTOR KESEHATAN (10 SAHAM) ====================
+HEAL.JK  # Medikaloka Hermina
+MIKA.JK  # Mitra Keluarga
+PRDA.JK  # Prodia Widyahusada
+RSGK.JK  # Kedoya Adyaraya
+SAME.JK  # Rama Pharma
+SILO.JK  # Siloam Hospitals
+CARE.JK  # Metro Healthcare
+IRRA.JK  # Itama Ranoraya
+BMHS.JK  # Bundamedik
+OCAP.JK  # Onix Capital
+
+# ==================== SEKTOR INFRASTRUKTUR (25 SAHAM) ====================
+CINT.JK  # Chitose Internasional
+CMNP.JK  # Citra Marga Nusaphala
+EXCL.JK  # XL Axiata
+FREN.JK  # Smartfren
+ISAT.JK  # Indosat
+JSMR.JK  # Jasa Marga
+KEEN.JK  # Kencana Energi Lestari
+MTEL.JK  # Dayamitra Telekomunikasi
+PGEO.JK  # Pertamina Geothermal
+TBIG.JK  # Tower Bersama Infrastructure
+TLKM.JK  # Telkom Indonesia
+TOWR.JK  # Sarana Menara Nusantara
+BALI.JK  # Bali Towerindo Sentra
+CENT.JK  # Centratama Telekomunikasi
+GOLD.JK  # Trimegah Karya Pratama
+IBST.JK  # Inti Bangun Sejahtera
+LCGP.JK  # Logistic Capex
+META.JK  # Nusantara Infrastructure
+PANS.JK  # Paninvest
+SUPR.JK  # Solusi Tunas Pratama
+TARA.JK  # Agung Semesta Sejahtera
+TOPS.JK  # Totalindo Eka Persada
+TPIA.JK  # Chandra Asri
+YELO.JK  # Yelooo Integra Datanet
+ZBRA.JK  # Zebra Nusantara
+
+# ==================== SEKTOR KEUANGAN SYARIAH (15 SAHAM) ====================
+AMAR.JK  # Bank Amar Indonesia
+ARTO.JK  # Bank Jago
+BANK.JK  # Bank Aladin Syariah
+BBTN.JK  # Bank Tabungan Negara
+BEBE.JK  # Bank Pembangunan Daerah
+BJBR.JK  # Bank Jabar Banten
+BJTM.JK  # Bank Jatim
+BNGA.JK  # Bank CIMB Niaga
+BNII.JK  # Bank Maybank
+BPFI.JK  # Batavia Prosperindo Finans
+BRIS.JK  # Bank Syariah Indonesia
+BTPS.JK  # Bank BTPN Syariah
+DEFI.JK  # Danasupra Erapacific
+MASB.JK  # Bank Multiarta Sentosa
+PNBS.JK  # Bank Panin Dubai Syariah
+
+# ==================== SEKTOR TEKNOLOGI (15 SAHAM) ====================
+DCII.JK  # DCI Indonesia
+DIGI.JK  # Arkadia Digital Media
+DNET.JK  # Indoritel Makmur Internasional
+EDGE.JK  # Indointernet
+EMTK.JK  # Elang Mahkota Teknologi
+GOTO.JK  # GoTo Gojek Tokopedia
+LUCK.JK  # Lucky Indah Keramik
+MCAS.JK  # M Cash Integrasi
+MLPT.JK  # Multipolar Technology
+MTDL.JK  # Metrodata Electronics
+PTSN.JK  # Sat Nusapersada
+SCMA.JK  # Surya Citra Media
+TFAS.JK  # Telefast Indonesia
+TRUK.JK  # Guna Timur Raya
+WIFI.JK  # Solusi Sinergi Digital
+
+# ==================== SEKTOR PROPERTI (30 SAHAM) ====================
+ASRI.JK  # Alam Sutera Realty
+BAPA.JK  # Bekasi Asri Pemula
+BEST.JK  # Bekasi Fajar Industrial
+BSDE.JK  # Bumi Serpong Damai
+CTRA.JK  # Ciputra Development
+DILD.JK  # Intiland Development
+GPRA.JK  # Perdana Gapuraprima
+JRPT.JK  # Jaya Real Property
+KIJA.JK  # Kawasan Industri Jababeka
+LPKR.JK  # Lippo Karawaci
+MKPI.JK  # Metropolitan Kentjana
+MTLA.JK  # Metropolitan Land
+POLL.JK  # Pollux Hotels
+PPRO.JK  # PP Properti
+PWON.JK  # Pakuwon Jati
+RDTX.JK  # Roda Vivatex
+SMRA.JK  # Summarecon Agung
+APLN.JK  # Agung Podomoro Land
+BCIP.JK  # Bumi Citra Permai
+BKSL.JK  # Sentul City
+DMAS.JK  # Puradelta Lestari
+EMDE.JK  # Megapolitan Developments
+FORZ.JK  # Forza Land Indonesia
+GAMA.JK  # Gading Development
+GWSA.JK  # Greenwood Sejahtera
+INPP.JK  # Indonesian Paradise Property
+KOTA.JK  # DMS Propertindo
+LPCK.JK  # Lippo Cikarang
+MORE.JK  # Morenzo Abadi Perkasa
+NIRO.JK  # City Retail Developments
+
+# ==================== SEKTOR TRANSPORTASI (15 SAHAM) ====================
+ASSI.JK  # Adi Sarana Armada
+BIRD.JK  # Blue Bird
+BPTR.JK  # Batavia Prosperindo Trans
+CMPP.JK  # AirAsia Indonesia
+GIAA.JK  # Garuda Indonesia
+HITS.JK  # Humpuss Intermoda
+IPCM.JK  # Jasa Armada Indonesia
+LRNA.JK  # Eka Sari Lorena
+NELY.JK  # Pelayaran Nelly Dwi Putri
+SAFE.JK  # Steady Safe
+SDMU.JK  # Sidomulyo Selaras
+SMDR.JK  # Samudera Indonesia
+TAXI.JK  # Express Transindo Utama
+TMAS.JK  # Temas Tbk
+WINS.JK  # Wintermar Offshore Marine
+
+# ==================== SEKTOR PERDAGANGAN & JASA (10 SAHAM) ====================
+AKSI.JK  # Mineral Sumberdaya Mandiri
+CARS.JK  # Industri dan Perdagangan
+FORU.JK  # Fortune Indonesia
+INPP.JK  # Indonesian Paradise Property
+MAMI.JK  # Mas Murni Indonesia
+MDRN.JK  # Modern Internasional
+MICE.JK  # Multi Indocitra
+MINA.JK  # Sanurhasta Mitra
+NUSA.JK  # Sinergi Megah Internusa
+SRAJ.JK  # Sejahteraraya Anugrahjaya
+
+# ==================== TOTAL: 220+ SAHAM SYARIAH ====================
