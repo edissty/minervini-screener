@@ -10,12 +10,12 @@ class MinerviniScreener:
         self.criteria = {
             'C1': 'Harga > MA150 dan MA200',
             'C2': 'MA150 > MA200',
-            'C3': 'MA50 > MA150 dan MA200',
-            'C4': 'Harga > MA50',
-            'C5': 'Harga > MA20',
-            'C6': 'MA20 > MA50',
-            'C7': 'Trend naik (harga 25% > harga 50 hari lalu)',
-            'C8': 'Volume > rata-rata 50 hari'
+            'C3': 'MA200 Menanjak (lebih tinggi dari 1 bulan lalu)',
+            'C4': 'MA50 > MA150 dan MA200',
+            'C5': 'Harga > MA50',
+            'C6': 'Harga > 30% dari 52-Week Low',
+            'C7': 'Harga dalam 25% dari 52-Week High',
+            'C8': 'Relative Strength (RS) > 70'
         }
         self.total_saham = 0
         self.saham_lolos = 0
@@ -23,9 +23,9 @@ class MinerviniScreener:
         self.saham_ok = []
         self.saham_kurang_data = []
         
-    def get_stock_data(self, ticker, period='1y'):  # UBAH dari '6mo' ke '1y' atau '2y'
+    def get_stock_data(self, ticker, period='1y'):
         """
-        Mengambil data saham dengan periode lebih panjang
+        Mengambil data saham dengan periode cukup untuk 52-week analysis
         """
         max_retries = 3
         
@@ -48,8 +48,8 @@ class MinerviniScreener:
         
         print(f"  Debug: Mencoba {len(ticker_formats)} format untuk {original_ticker}...")
         
-        # Coba dengan periode berbeda jika perlu
-        periods_to_try = ['2y', '1y', '6mo', 'max']
+        # Coba dengan periode berbeda
+        periods_to_try = ['2y', '1y', 'max']
         
         for attempt in range(max_retries):
             for ticker_format in ticker_formats:
@@ -59,44 +59,39 @@ class MinerviniScreener:
                         session = requests.Session()
                         session.headers.update({
                             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                            'Accept-Language': 'en-US,en;q=0.9',
                         })
                         
                         # Impersonate Chrome
                         session.impersonate = "chrome120"
                         
-                        # Panggil yfinance dengan session curl_cffi
+                        # Panggil yfinance
                         stock = yf.Ticker(ticker_format, session=session)
                         
-                        # Ambil data dengan periode yang lebih panjang
+                        # Ambil data
                         df = stock.history(period=period_try, timeout=15)
                         
-                        print(f"    Debug: {ticker_format} dengan period={period_try}... ", end='')
+                        print(f"    Debug: {ticker_format} period={period_try}... ", end='')
                         
                         if df is not None and not df.empty:
                             print(f"✅ {len(df)} data points")
                             
-                            # Cek apakah data cukup (minimal 200 hari)
-                            if len(df) >= 200:
-                                print(f"      ✓ Data cukup! ({len(df)} >= 200)")
+                            # Minimal butuh 250 hari untuk analysis 52-week (252 hari trading)
+                            if len(df) >= 250:
+                                print(f"      ✓ Data cukup! ({len(df)} >= 250)")
                                 self.saham_ok.append(original_ticker)
                                 return df
                             else:
-                                print(f"      ⚠ Data kurang: {len(df)}/200 hari")
-                                # Simpan yang kurang data tapi tetap return
-                                if len(df) > 100:  # Minimal ada 100 hari
+                                print(f"      ⚠ Data kurang: {len(df)}/250 hari")
+                                if len(df) > 200:
                                     self.saham_kurang_data.append(original_ticker)
                                     return df
                         else:
                             print(f"❌ Kosong")
                             
                     except Exception as e:
-                        error_msg = str(e)
-                        print(f"    Debug: Error: {error_msg[:50]}...")
+                        print(f"    Debug: Error: {str(e)[:50]}...")
                         continue
                     
-                    # Jeda antar format
                     time.sleep(0.5)
             
             if attempt < max_retries - 1:
@@ -114,50 +109,96 @@ class MinerviniScreener:
             df[f'MA{period}'] = df['Close'].rolling(window=period).mean()
         return df
     
+    def calculate_relative_strength(self, df, benchmark='^JKSE'):
+        """
+        Menghitung Relative Strength Rating (0-100)
+        Membandingkan kinerja saham dengan IHSG (JKSE)
+        """
+        try:
+            if len(df) < 60:  # Butuh minimal 60 hari untuk perhitungan
+                return 0
+            
+            # Ambil data IHSG sebagai benchmark
+            session = requests.Session()
+            session.impersonate = "chrome120"
+            idx = yf.Ticker(benchmark, session=session)
+            idx_df = idx.history(period='3mo')
+            
+            if idx_df.empty or len(idx_df) < 60:
+                # Fallback: gunakan return saham saja
+                returns = df['Close'].pct_change().dropna()
+                if len(returns) > 0:
+                    # Hitung percentile dari return harian
+                    rs = min(99, max(1, (returns.mean() * 100) + 50))
+                    return rs
+                return 50
+            
+            # Hitung return 3 bulan
+            stock_return = (df['Close'].iloc[-1] / df['Close'].iloc[-60] - 1) * 100
+            market_return = (idx_df['Close'].iloc[-1] / idx_df['Close'].iloc[-60] - 1) * 100
+            
+            # Relative Strength = stock_return - market_return + 50
+            # Dibatasi antara 1-99
+            rs = min(99, max(1, stock_return - market_return + 50))
+            
+            return rs
+            
+        except Exception as e:
+            print(f"    Debug: Error RS: {e}")
+            return 50
+    
     def check_criteria(self, df):
-        """Memeriksa kriteria Minervini dengan toleransi data kurang"""
+        """Memeriksa 8 kriteria Minervini yang sesungguhnya"""
         if df is None:
             return {}
         
         data_points = len(df)
+        print(f"  Debug: Memeriksa {data_points} data points")
         
-        # Log jumlah data
-        print(f"  Debug: Memeriksa kriteria dengan {data_points} data points")
+        # Hitung semua MA
+        available_periods = []
+        if data_points >= 20:
+            available_periods.append(20)
+        if data_points >= 50:
+            available_periods.append(50)
+        if data_points >= 150:
+            available_periods.append(150)
+        if data_points >= 200:
+            available_periods.append(200)
         
-        # Jika data kurang dari 200, beberapa MA tidak bisa dihitung
-        if data_points < 200:
-            print(f"  ⚠ Peringatan: Data hanya {data_points} hari (butuh 200 untuk MA150/200)")
-            
-            # Hitung MA yang bisa dihitung
-            available_periods = []
-            if data_points >= 20:
-                available_periods.append(20)
-            if data_points >= 50:
-                available_periods.append(50)
-            if data_points >= 150:
-                available_periods.append(150)
-            if data_points >= 200:
-                available_periods.append(200)
-            
-            df = self.calculate_ma(df, available_periods)
-        else:
-            df = self.calculate_ma(df, [20, 50, 150, 200])
+        df = self.calculate_ma(df, available_periods)
         
         try:
             # Data terbaru
             latest = df.iloc[-1]
             
-            # Data 50 hari lalu
-            prev_50 = df.iloc[-50] if len(df) >= 50 else None
+            # Data untuk MA200 trend (1 bulan yang lalu = 22 hari trading)
+            ma200_1month_ago = None
+            if 'MA200' in df.columns and len(df) >= 222:  # 200 + 22
+                ma200_1month_ago = df['MA200'].iloc[-22]
+            
+            # 52-week high/low
+            if len(df) >= 252:
+                year_data = df.tail(252)
+                year_high = year_data['High'].max()
+                year_low = year_data['Low'].min()
+            else:
+                # Pakai data yang ada
+                year_high = df['High'].max()
+                year_low = df['Low'].min()
+            
+            current_price = latest['Close']
+            
+            # Hitung Relative Strength
+            rs_rating = self.calculate_relative_strength(df)
             
             results = {}
             
-            # C1: Harga > MA150 dan MA200 (hanya jika tersedia)
+            # C1: Harga > MA150 dan MA200
             if 'MA150' in df.columns and 'MA200' in df.columns:
-                results['C1'] = latest['Close'] > latest['MA150'] and latest['Close'] > latest['MA200']
+                results['C1'] = current_price > latest['MA150'] and current_price > latest['MA200']
             else:
-                results['C1'] = False  # Tidak memenuhi jika data kurang
-                print(f"  Debug: C1 tidak bisa dihitung (kurang MA150/200)")
+                results['C1'] = False
             
             # C2: MA150 > MA200
             if 'MA150' in df.columns and 'MA200' in df.columns:
@@ -165,54 +206,56 @@ class MinerviniScreener:
             else:
                 results['C2'] = False
             
-            # C3: MA50 > MA150 dan MA200
-            if 'MA50' in df.columns and 'MA150' in df.columns and 'MA200' in df.columns:
-                results['C3'] = latest['MA50'] > latest['MA150'] and latest['MA50'] > latest['MA200']
+            # C3: MA200 Menanjak (lebih tinggi dari 1 bulan lalu)
+            if 'MA200' in df.columns and ma200_1month_ago is not None:
+                results['C3'] = latest['MA200'] > ma200_1month_ago
             else:
                 results['C3'] = False
             
-            # C4: Harga > MA50
-            if 'MA50' in df.columns:
-                results['C4'] = latest['Close'] > latest['MA50']
+            # C4: MA50 > MA150 dan MA200
+            if 'MA50' in df.columns and 'MA150' in df.columns and 'MA200' in df.columns:
+                results['C4'] = latest['MA50'] > latest['MA150'] and latest['MA50'] > latest['MA200']
             else:
                 results['C4'] = False
             
-            # C5: Harga > MA20
-            if 'MA20' in df.columns:
-                results['C5'] = latest['Close'] > latest['MA20']
+            # C5: Harga > MA50
+            if 'MA50' in df.columns:
+                results['C5'] = current_price > latest['MA50']
             else:
                 results['C5'] = False
             
-            # C6: MA20 > MA50
-            if 'MA20' in df.columns and 'MA50' in df.columns:
-                results['C6'] = latest['MA20'] > latest['MA50']
+            # C6: Harga > 30% dari 52-Week Low
+            if year_low > 0:
+                pct_from_low = (current_price / year_low - 1) * 100
+                results['C6'] = pct_from_low > 30
+                print(f"    Debug: Jarak dari low: {pct_from_low:.1f}%")
             else:
                 results['C6'] = False
             
-            # C7: Trend naik
-            if prev_50 is not None and prev_50['Close'] > 0:
-                pct_change = (latest['Close'] / prev_50['Close'] - 1) * 100
-                results['C7'] = pct_change > 25
+            # C7: Harga dalam 25% dari 52-Week High
+            if year_high > 0:
+                pct_from_high = (1 - current_price / year_high) * 100
+                results['C7'] = pct_from_high <= 25
+                print(f"    Debug: Jarak dari high: {pct_from_high:.1f}%")
             else:
                 results['C7'] = False
             
-            # C8: Volume > rata-rata 50 hari
-            if len(df) >= 50:
-                avg_volume = df['Volume'].tail(50).mean()
-                if avg_volume > 0:
-                    results['C8'] = latest['Volume'] > avg_volume
-                else:
-                    results['C8'] = False
-            else:
-                results['C8'] = False
+            # C8: Relative Strength > 70
+            results['C8'] = rs_rating > 70
+            print(f"    Debug: RS Rating: {rs_rating:.1f}")
             
-            # Validasi harga
-            if latest['Close'] <= 0:
+            # Validasi
+            if current_price <= 0:
                 return {}
             
-            # Hitung total kriteria yang terpenuhi
             total_met = sum(results.values())
             print(f"  Debug: Kriteria terpenuhi: {total_met}/8")
+            
+            # Tambahkan data tambahan untuk output
+            results['_price'] = current_price
+            results['_rs'] = rs_rating
+            results['_from_low'] = pct_from_low if year_low > 0 else 0
+            results['_from_high'] = pct_from_high if year_high > 0 else 0
             
             return results
             
@@ -228,12 +271,18 @@ class MinerviniScreener:
         self.saham_ok = []
         self.saham_kurang_data = []
         
-        print(f"\n{'='*70}")
-        print(f"📊 MINERVINI SCREENER - SAHAM SYARIAH")
-        print(f"{'='*70}")
+        print(f"\n{'='*80}")
+        print(f"📊 MINERVINI SCREENER - 8 KRITERIA LENGKAP")
+        print(f"{'='*80}")
         print(f"Total saham: {self.total_saham}")
         print(f"Mulai: {datetime.now().strftime('%H:%M:%S')}")
-        print(f"{'='*70}\n")
+        print(f"{'='*80}\n")
+        
+        # Tampilkan kriteria
+        print("📋 KRITERIA MINERVINI:")
+        for k, v in self.criteria.items():
+            print(f"   {k}: {v}")
+        print()
         
         start_time = time.time()
         success_count = 0
@@ -260,26 +309,29 @@ class MinerviniScreener:
                 data_points = len(df)
                 success_count += 1
                 
-                if data_points < 200:
+                if data_points < 250:
                     kurang_data_count += 1
-                    print(f"   ⚠ Data: {data_points} hari (kurang dari 200)")
+                    print(f"   ⚠ Data: {data_points} hari (< 250)")
                 
                 criteria_results = self.check_criteria(df)
                 
                 if criteria_results:
-                    total_met = sum(criteria_results.values())
+                    total_met = sum([v for k, v in criteria_results.items() if k.startswith('C')])
+                    
+                    # Format harga
+                    price = criteria_results.get('_price', 0)
+                    if price >= 1000:
+                        price_str = f"Rp {price/1000:.1f}K"
+                    else:
+                        price_str = f"Rp {price:,.0f}"
+                    
+                    # Ambil data tambahan
+                    rs = criteria_results.get('_rs', 0)
+                    from_low = criteria_results.get('_from_low', 0)
+                    from_high = criteria_results.get('_from_high', 0)
                     
                     # Hanya simpan yang 7/8 atau 8/8
                     if total_met >= 7:
-                        latest_price = df.iloc[-1]['Close']
-                        
-                        # Format harga
-                        if latest_price >= 1000:
-                            price_str = f"Rp {latest_price/1000:.1f}K"
-                        else:
-                            price_str = f"Rp {latest_price:,.0f}"
-                        
-                        # Ambil kode bersih
                         clean_ticker = ticker.split('#')[0].strip()
                         
                         result = {
@@ -288,6 +340,7 @@ class MinerviniScreener:
                             'Skor': f"{total_met}/8",
                             'Status': '8/8' if total_met == 8 else '7/8',
                             'Harga': price_str,
+                            'RS': f"{rs:.0f}",
                             'C1': '✓' if criteria_results.get('C1', False) else '✗',
                             'C2': '✓' if criteria_results.get('C2', False) else '✗',
                             'C3': '✓' if criteria_results.get('C3', False) else '✗',
@@ -298,9 +351,10 @@ class MinerviniScreener:
                             'C8': '✓' if criteria_results.get('C8', False) else '✗',
                         }
                         results.append(result)
-                        print(f"  ✅ LOLOS! ({total_met}/8) - {price_str}")
+                        print(f"  ✅ LOLOS! ({total_met}/8) - {price_str} (RS: {rs:.0f})")
+                        print(f"     Low: {from_low:.1f}% | High: {from_high:.1f}%")
                     else:
-                        print(f"  ❌ Tidak lolos ({total_met}/8)")
+                        print(f"  ❌ Tidak lolos ({total_met}/8) - RS: {rs:.0f}")
                 else:
                     print(f"  ❌ Gagal kriteria")
             else:
@@ -312,7 +366,8 @@ class MinerviniScreener:
         # Konversi ke DataFrame
         if results:
             df_results = pd.DataFrame(results)
-            df_results = df_results.sort_values('Status', ascending=False)
+            # Urutkan berdasarkan skor
+            df_results = df_results.sort_values(['Status', 'RS'], ascending=[False, False])
             self.saham_lolos = len(df_results)
         else:
             df_results = pd.DataFrame()
@@ -320,9 +375,9 @@ class MinerviniScreener:
         
         # Tampilkan ringkasan
         total_time = time.time() - start_time
-        print("\n" + "=" * 70)
+        print("\n" + "=" * 80)
         print("📊 RINGKASAN FINAL")
-        print("=" * 70)
+        print("=" * 80)
         print(f"Total saham         : {self.total_saham}")
         print(f"Berhasil diambil    : {success_count}")
         print(f"  - Data cukup      : {success_count - kurang_data_count}")
@@ -334,8 +389,13 @@ class MinerviniScreener:
         if self.saham_lolos > 0:
             count_8 = len(df_results[df_results['Status'] == '8/8'])
             count_7 = len(df_results[df_results['Status'] == '7/8'])
-            print(f"\n✅ Rincian kelulusan:")
+            print(f"\n✅ RINCIAN KELULUSAN:")
             print(f"   - 8/8: {count_8}")
             print(f"   - 7/8: {count_7}")
+            
+            print(f"\n📋 TOP SAHAM:")
+            top5 = df_results.head(5)
+            for idx, row in top5.iterrows():
+                print(f"   {row['Ticker']}: {row['Status']} (RS: {row['RS']}) - {row['Harga']}")
         
         return df_results
