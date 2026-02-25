@@ -1,140 +1,44 @@
-# DAFTAR SAHAM SYARIAH INDONESIA UNTUK SCREENING MINERVINI
-# Format: kode saham + .JK (WAJIB)
-# Sumber: Daftar Efek Syariah BEI 2026
-
-# ==================== SEKTOR ENERGI ====================
-ADRO.JK  # Alamtri Resources Indonesia (Energi)
-ADMR.JK  # Adaro Minerals Indonesia (Energi - Syariah)
-AKRA.JK  # AKR Corporindo (Energi/Logistik)
-PGAS.JK  # Perusahaan Gas Negara (Energi)
-PTBA.JK  # Bukit Asam (Energi)
-MEDC.JK  # Medco Energi Internasional (Energi)
-ITMG.JK  # Indo Tambangraya Megah (Energi)
-INDY.JK  # Indika Energy (Energi)
-BUMI.JK  # Bumi Resources (Energi)
-HRUM.JK  # Harum Energy (Energi)
-DOID.JK  # Delta Dunia Makmur (Energi)
-ELSA.JK  # Elnusa (Energi - Migas)
-SGER.JK  # Sumber Global Energy (Energi)
-
-# ==================== SEKTOR BAHAN BAKU ====================
-ANTM.JK  # Aneka Tambang (Bahan Baku - Nikel/Emas)
-INCO.JK  # Vale Indonesia (Bahan Baku - Nikel)
-MDKA.JK  # Merdeka Copper Gold (Bahan Baku - Emas/Tembaga)
-BRMS.JK  # Bumi Resources Minerals (Bahan Baku - Emas)
-NCKL.JK  # Trimegah Bangun Persada (Bahan Baku - Nikel) [citation:2]
-DKFT.JK  # Central Omega Resources (Bahan Baku - Nikel)
-PSAB.JK  # J Resources Asia (Bahan Baku - Emas)
-TINS.JK  # Timah (Bahan Baku - Timah)
-SMGR.JK  # Semen Indonesia (Bahan Baku - Semen)
-INTP.JK  # Indocement Tunggal Prakarsa (Bahan Baku - Semen)
-SMCB.JK  # Solusi Bangun Indonesia (Bahan Baku - Semen)
-ARNA.JK  # Arwana Citramulia (Bahan Baku - Keramik)
-TKIM.JK  # Pabrik Kertas Tjiwi Kimia (Bahan Baku - Kertas) [citation:5]
-INKP.JK  # Indah Kiat Pulp & Paper (Bahan Baku - Kertas)
-
-# ==================== SEKTOR PERINDUSTRIAN ====================
-ASII.JK  # Astra International (Perindustrian - Otomotif)
-UNTR.JK  # United Tractors (Perindustrian - Alat Berat)
-PTPP.JK  # PP Persero (Perindustrian - Konstruksi) [citation:5]
-ADHI.JK  # Adhi Karya (Perindustrian - Konstruksi) [citation:5]
-WIKA.JK  # Wijaya Karya (Perindustrian - Konstruksi)
-WSKT.JK  # Waskita Karya (Perindustrian - Konstruksi)
-ACST.JK  # Acset Indonusa (Perindustrian - Konstruksi)
-MTLA.JK  # Metropolitan Land (Perindustrian - Properti)
-BUKK.JK  # Bukaka Teknik Utama (Perindustrian - Manufaktur)
-KRAH.JK  # Grand Kartech (Perindustrian - Manufaktur)
-
-# ==================== SEKTOR BARANG KONSUMEN PRIMER ====================
-ICBP.JK  # Indofood CBP (Consumer - Makanan)
-INDF.JK  # Indofood Sukses Makmur (Consumer - Makanan) [citation:2][citation:9]
-KLBF.JK  # Kalbe Farma (Consumer - Kesehatan) [citation:5]
-UNVR.JK  # Unilever Indonesia (Consumer - Produk Rumah Tangga) [citation:5]
-CPIN.JK  # Charoen Pokphand (Consumer - Pakan Ternak) [citation:5]
-JPFA.JK  # Japfa Comfeed (Consumer - Pakan Ternak)
-MAIN.JK  # Malindo Feedmil (Consumer - Pakan Ternak)
-SIDO.JK  # Sido Muncul (Consumer - Jamu/Farmasi) [citation:9]
-DVLA.JK  # Darya Varia (Consumer - Farmasi)
-MERK.JK  # Merck Indonesia (Consumer - Farmasi)
-TSPC.JK  # Tempo Scan Pacific (Consumer - Farmasi)
-MYOR.JK  # Mayora Indah (Consumer - Makanan) [citation:5]
-ROTI.JK  # Nippon Indosari (Consumer - Makanan)
-ULTJ.JK  # Ultra Jaya (Consumer - Susu)
-CAMP.JK  # Campina Ice Cream (Consumer - Makanan)
-SKBM.JK  # Sekar Bumi (Consumer - Makanan)
-SKLT.JK  # Sekar Laut (Consumer - Makanan)
-DLTA.JK  # Delta Djakarta (Consumer - Minuman)
-STTP.JK  # Siantar Top (Consumer - Makanan)
-AALI.JK  # Astra Agro Lestari (Consumer - Perkebunan)
-LSIP.JK  # PP London Sumatra (Consumer - Perkebunan)
-SIMP.JK  # Salim Ivomas Pratama (Consumer - Perkebunan) [citation:5]
-BWPT.JK  # Eagle High Plantations (Consumer - Perkebunan)
-SSMS.JK  # Sawit Sumbermas (Consumer - Perkebunan)
-
-# ==================== SEKTOR BARANG KONSUMEN NON-PRIMER ====================
-MAPI.JK  # Mitra Adiperkasa (Retail) [citation:5]
-ERAA.JK  # Erajaya Swasembada (Retail - Elektronik) [citation:5]
-ACES.JK  # Ace Hardware (Retail) [citation:5]
-RALS.JK  # Ramayana Lestari (Retail)
-LPPF.JK  # Matahari Department Store (Retail) [citation:5]
-MIDI.JK  # Midi Utama Indonesia (Retail - Alfamidi) [citation:5]
-AMRT.JK  # Sumber Alfaria Trijaya (Retail - Alfamart)
-CSAP.JK  # Catur Sentosa Adiprana (Retail - Bangunan)
-SMSM.JK  # Selamat Sempurna (Consumer - Otomotif) [citation:9]
-GJTL.JK  # Gajah Tunggal (Consumer - Ban)
-BRAM.JK  # Indo Kordsa (Consumer - Ban)
-
-# ==================== SEKTOR KESEHATAN ====================
-HEAL.JK  # Medikaloka Hermina (Kesehatan - Rumah Sakit)
-MIKA.JK  # Mitra Keluarga (Kesehatan - Rumah Sakit) [citation:5]
-SILO.JK  # Siloam Hospitals (Kesehatan - Rumah Sakit)
-PRDA.JK  # Prodia Widyahusada (Kesehatan - Laboratorium)
-
-# ==================== SEKTOR INFRASTRUKTUR ====================
-TLKM.JK  # Telkom Indonesia (Infrastruktur - Telekom) [citation:5][citation:9]
-TOWR.JK  # Sarana Menara Nusantara (Infrastruktur - Tower) [citation:5]
-TBIG.JK  # Tower Bersama Infrastructure (Infrastruktur - Tower)
-MTEL.JK  # Dayamitra Telekomunikasi (Infrastruktur - Tower)
-JSMR.JK  # Jasa Marga (Infrastruktur - Tol) [citation:5]
-EXCL.JK  # XL Axiata (Infrastruktur - Telekom) [citation:5]
-ISAT.JK  # Indosat (Infrastruktur - Telekom)
-FREN.JK  # Smartfren (Infrastruktur - Telekom)
-KEEN.JK  # Kencana Energi (Infrastruktur - Energi)
-
-# ==================== SEKTOR TRANSPORTASI ====================
-BIRD.JK  # Blue Bird (Transportasi) [citation:9]
-ASSI.JK  # Adi Sarana Armada (Transportasi)
-CMPP.JK  # AirAsia Indonesia (Transportasi)
-GIAA.JK  # Garuda Indonesia (Transportasi)
-
-# ==================== SEKTOR KEUANGAN SYARIAH ====================
-BRIS.JK  # Bank Syariah Indonesia (Keuangan Syariah) [citation:2][citation:6][citation:7]
-BTPS.JK  # Bank BTPN Syariah (Keuangan Syariah) [citation:7]
-PNBS.JK  # Bank Panin Dubai Syariah (Keuangan Syariah) [citation:5][citation:7]
-BANK.JK  # Bank Aladin Syariah (Keuangan Syariah) [citation:7]
-AMAR.JK  # Bank Amar Indonesia (Keuangan Syariah)
-
-# ==================== SEKTOR TEKNOLOGI ====================
-MTDL.JK  # Metrodata Electronics (Teknologi) [citation:5]
-DCII.JK  # DCI Indonesia (Teknologi - Data Center) [citation:9]
-MLPT.JK  # Multipolar Technology (Teknologi)
-LUCK.JK  # Lucky Indah Keramik (Teknologi)
-EMTK.JK  # Elang Mahkota Teknologi (Teknologi - Media)
-SCMA.JK  # Surya Citra Media (Teknologi - Media)
-MAPI  # (sudah di atas)
-
-# ==================== SEKTOR PROPERTI & REAL ESTAT ====================
-BSDE.JK  # Bumi Serpong Damai (Properti) [citation:9]
-PWON.JK  # Pakuwon Jati (Properti)
-LPKR.JK  # Lippo Karawaci (Properti)
-CTRA.JK  # Ciputra Development (Properti)
-SMRA.JK  # Summarecon Agung (Properti)
-MKPI.JK  # Metropolitan Kentjana (Properti)
-ASRI.JK  # Alam Sutera Realty (Properti)
-BAPA.JK  # Bekasi Asri Pemula (Properti)
-BEST.JK  # Bekasi Fajar Industrial (Properti)
-DILD.JK  # Intiland Development (Properti)
-GPRA.JK  # Perdana Gapuraprima (Properti)
-JRPT.JK  # Jaya Real Property (Properti)
-KIJA.JK  # Kawasan Industri Jababeka (Properti)
-RDTX.JK  # Roda Vivatex (Properti)
+# DAFTAR SAHAM SYARIAH - FORMAT BERSIH (HANYA KODE)
+ADRO.JK
+ANTM.JK
+ASII.JK
+BBCA.JK
+BBNI.JK
+BBRI.JK
+BMRI.JK
+BRIS.JK
+CPIN.JK
+ERAA.JK
+EXCL.JK
+GOTO.JK
+HMSP.JK
+ICBP.JK
+INCO.JK
+INDF.JK
+INKP.JK
+INTP.JK
+ISAT.JK
+ITMG.JK
+JPFA.JK
+JSMR.JK
+KLBF.JK
+MAPI.JK
+MDKA.JK
+MIKA.JK
+MTDL.JK
+MYOR.JK
+PGAS.JK
+PTBA.JK
+PTPP.JK
+PWON.JK
+SIDO.JK
+SILO.JK
+SMGR.JK
+TBIG.JK
+TKIM.JK
+TLKM.JK
+TOWR.JK
+UNTR.JK
+UNVR.JK
+WIKA.JK
+WSKT.JK
