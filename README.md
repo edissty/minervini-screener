@@ -170,7 +170,7 @@ Kurangi jumlah saham jika terlalu lama
 🤝 Kontribusi
 Silakan fork repository ini dan buat pull request untuk:
 
-✅ Menambah daftar saham syariah
+✅ Menambah daftar saham syariah atau non syariah
 
 ✅ Memperbaiki akurasi kriteria
 
