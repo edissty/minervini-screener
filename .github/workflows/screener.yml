@@ -1,4 +1,4 @@
-name: Minervini Stock Screener
+name: 📈Minervini Stock Screener
 
 on:
   workflow_dispatch:
