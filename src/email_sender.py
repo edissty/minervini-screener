@@ -31,14 +31,11 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                 harga = row['Harga']
                 rs = row['RS'] if 'RS' in row else '70'
                 
-                # Hitung harga entry, stop loss, target berdasarkan aturan Minervini
-                # Asumsi harga dalam format "Rp 2.5K" atau "Rp 2,500"
-                harga_clean = str(harga).replace('Rp ', '').replace('K', '000').replace(',', '')
+                # Parsing harga yang sudah dalam format "Rp 11.250"
                 try:
-                    if 'K' in str(harga):
-                        harga_numeric = float(harga_clean.replace('K', '')) * 1000
-                    else:
-                        harga_numeric = float(harga_clean)
+                    # Hapus "Rp " dan titik pemisah ribuan
+                    harga_clean = str(harga).replace('Rp ', '').replace('.', '')
+                    harga_numeric = float(harga_clean)
                     
                     # Entry bisa di harga saat ini atau sedikit di bawah
                     entry_price = harga_numeric
@@ -60,17 +57,11 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                     else:
                         risk_reward = 0
                     
-                    # Format untuk tampilan
-                    if entry_price >= 1000:
-                        entry_str = f"Rp {entry_price/1000:.1f}K"
-                        stop_str = f"Rp {stop_loss/1000:.1f}K"
-                        target1_str = f"Rp {target1/1000:.1f}K"
-                        target2_str = f"Rp {target2/1000:.1f}K"
-                    else:
-                        entry_str = f"Rp {entry_price:,.0f}"
-                        stop_str = f"Rp {stop_loss:,.0f}"
-                        target1_str = f"Rp {target1:,.0f}"
-                        target2_str = f"Rp {target2:,.0f}"
+                    # Format untuk tampilan (tetap detail, tanpa K)
+                    entry_str = f"Rp {entry_price:,.0f}".replace(',', '.')
+                    stop_str = f"Rp {stop_loss:,.0f}".replace(',', '.')
+                    target1_str = f"Rp {target1:,.0f}".replace(',', '.')
+                    target2_str = f"Rp {target2:,.0f}".replace(',', '.')
                     
                 except Exception as e:
                     entry_str = harga
