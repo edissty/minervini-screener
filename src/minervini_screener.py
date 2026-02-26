@@ -247,7 +247,9 @@ class MinerviniScreener:
                     
                     if total_met >= 7:
                         price = criteria.get('_price', 0)
-                        price_str = f"Rp {price/1000:.1f}K" if price >= 1000 else f"Rp {price:,.0f}"
+                        # FORMAT HARGA DETAIL (TANPA K, TANPA PEMBULATAN)
+                        price_str = f"Rp {price:,.0f}".replace(',', '.')
+                        
                         rs = criteria.get('_rs', 0)
                         from_low = criteria.get('_from_low', 0)
                         from_high = criteria.get('_from_high', 0)
@@ -260,7 +262,7 @@ class MinerviniScreener:
                             'Data': f"{len(df)}hr",
                             'Skor': f"{total_met}/8",
                             'Status': '8/8' if total_met == 8 else '7/8',
-                            'Harga': price_str,
+                            'Harga': price_str,  # CONTOH: "Rp 11.250" bukan "Rp 11.2K"
                             'RS': f"{rs:.0f}",
                             'Low': f"{from_low:.0f}%",
                             'High': f"{from_high:.0f}%",
@@ -274,7 +276,7 @@ class MinerviniScreener:
                             'C8': '✓' if criteria.get('C8') else '✗',
                         }
                         results.append(result)
-                        print(f"  ✅ LOLOS! ({total_met}/8) RS:{rs:.0f} Low:{from_low:.0f}% High:{from_high:.0f}%")
+                        print(f"  ✅ LOLOS! ({total_met}/8) RS:{rs:.0f} Harga:{price_str}")
                     else:
                         print(f"  ❌ {total_met}/8")
             
