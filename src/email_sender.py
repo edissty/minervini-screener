@@ -31,7 +31,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                 harga = row['Harga']
                 rs = row['RS'] if 'RS' in row else '70'
                 
-                # Hitung harga entry, stop loss, target berdasarkan aturan Minervini [citation:2][citation:4]
+                # Hitung harga entry, stop loss, target berdasarkan aturan Minervini
                 # Asumsi harga dalam format "Rp 2.5K" atau "Rp 2,500"
                 harga_clean = str(harga).replace('Rp ', '').replace('K', '000').replace(',', '')
                 try:
@@ -43,14 +43,22 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                     # Entry bisa di harga saat ini atau sedikit di bawah
                     entry_price = harga_numeric
                     
-                    # Stop loss 7-8% di bawah entry [citation:2][citation:4]
+                    # Stop loss 7-8% di bawah entry
                     stop_loss = entry_price * 0.93  # 7% di bawah
                     
-                    # Target 1: 20-30% (take profit sebagian) [citation:5]
+                    # Target 1: 20-30% (take profit sebagian)
                     target1 = entry_price * 1.20
                     
-                    # Target 2: 50% (jika kuat) [citation:5]
+                    # Target 2: 50% (jika kuat)
                     target2 = entry_price * 1.50
+                    
+                    # Hitung risk/reward ratio
+                    risk = entry_price - stop_loss
+                    reward = target1 - entry_price
+                    if risk > 0:
+                        risk_reward = reward / risk
+                    else:
+                        risk_reward = 0
                     
                     # Format untuk tampilan
                     if entry_price >= 1000:
@@ -64,11 +72,12 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                         target1_str = f"Rp {target1:,.0f}"
                         target2_str = f"Rp {target2:,.0f}"
                     
-                except:
+                except Exception as e:
                     entry_str = harga
                     stop_str = "-"
                     target1_str = "-"
                     target2_str = "-"
+                    risk_reward = 0
                 
                 trading_guide_html += f"""
                 <div style="background-color: #f0f7ff; padding: 15px; margin: 10px 0; border-left: 5px solid #3498db; border-radius: 5px;">
@@ -76,15 +85,15 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                     <table style="width: 100%; border-collapse: collapse;">
                         <tr>
                             <td style="padding: 8px; width: 30%;"><strong>Entry Point:</strong></td>
-                            <td style="padding: 8px;">{entry_str} (harga saat ini atau saat breakout) [citation:2]</td>
+                            <td style="padding: 8px;">{entry_str} (harga saat ini atau saat breakout)</td>
                         </tr>
                         <tr>
                             <td style="padding: 8px;"><strong>Stop Loss:</strong></td>
-                            <td style="padding: 8px;">{stop_str} (7-8% di bawah entry) ⚠️ [citation:2][citation:4]</td>
+                            <td style="padding: 8px;">{stop_str} (7-8% di bawah entry) ⚠️</td>
                         </tr>
                         <tr>
                             <td style="padding: 8px;"><strong>Target 1 (20%):</strong></td>
-                            <td style="padding: 8px;">{target1_str} → Jual 30-50% posisi [citation:5]</td>
+                            <td style="padding: 8px;">{target1_str} → Jual 30-50% posisi</td>
                         </tr>
                         <tr>
                             <td style="padding: 8px;"><strong>Target 2 (50%):</strong></td>
@@ -92,7 +101,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                         </tr>
                         <tr>
                             <td style="padding: 8px;"><strong>Risk/Reward:</strong></td>
-                            <td style="padding: 8px;">1 : {((target1/entry_price-1)*100/((entry_price-stop_loss)/entry_price*100)):.1f} (minimal 2:1 ideal) [citation:8]</td>
+                            <td style="padding: 8px;">1 : {risk_reward:.1f} (minimal 2:1 ideal)</td>
                         </tr>
                     </table>
                 </div>
@@ -156,29 +165,29 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                 {trading_guide_html}
                 
                 <div class="rules">
-                    <h4>⚠️ 10 Aturan Emas Minervini [citation:1][citation:6]</h4>
+                    <h4>⚠️ 10 Aturan Emas Minervini</h4>
                     <ol>
                         <li><strong>Gunakan stop loss SETIAP saat</strong> - jangan pernah entry tanpa stop loss</li>
                         <li><strong>Tentukan stop loss SEBELUM entry</strong> - bukan setelah membeli</li>
-                        <li><strong>Jangan pernah merata-rata posisi rugi (averaging down)</strong> [citation:1]</li>
+                        <li><strong>Jangan pernah merata-rata posisi rugi (averaging down)</strong></li>
                         <li><strong>Jangan biarkan profit besar berubah jadi rugi</strong> - trailing stop</li>
-                        <li><strong>Risiko maksimal 1-2% dari total modal per trade</strong> [citation:2]</li>
-                        <li><strong>Jual saat menguat, bukan saat melemah</strong> [citation:6]</li>
-                        <li><strong>Fokus pada 4-8 posisi terbaik, jangan terlalu diversifikasi</strong> [citation:6]</li>
-                        <li><strong>Lakukan post-analysis rutin</strong> - pelajari pola winner & loser [citation:6]</li>
-                        <li><strong>Konsisten dengan gaya trading - jangan ganti-ganti strategi</strong> [citation:6]</li>
-                        <li><strong>Sit-out power</strong> - mampu tidak trading saat tidak ada setup bagus [citation:6]</li>
+                        <li><strong>Risiko maksimal 1-2% dari total modal per trade</strong></li>
+                        <li><strong>Jual saat menguat, bukan saat melemah</strong></li>
+                        <li><strong>Fokus pada 4-8 posisi terbaik, jangan terlalu diversifikasi</strong></li>
+                        <li><strong>Lakukan post-analysis rutin</strong> - pelajari pola winner & loser</li>
+                        <li><strong>Konsisten dengan gaya trading - jangan ganti-ganti strategi</strong></li>
+                        <li><strong>Sit-out power</strong> - mampu tidak trading saat tidak ada setup bagus</li>
                     </ol>
                 </div>
                 
                 <div class="rules" style="background-color: #e8f4fd;">
-                    <h4>📌 Strategi Entry & Exit Minervini [citation:2][citation:5]</h4>
+                    <h4>📌 Strategi Entry & Exit Minervini</h4>
                     <ul>
                         <li><strong>Entry:</strong> Tunggu breakout dengan volume >150% rata-rata</li>
                         <li><strong>Stop Loss:</strong> 7-8% dari harga entry (WAJIB!)</li>
                         <li><strong>Take Profit 1 (20-30%):</strong> Jual 30-50% posisi, trailing stop sisanya</li>
                         <li><strong>Take Profit 2 (50%+):</strong> Gunakan trailing stop (MA10 atau MA20)</li>
-                        <li><strong>Time Stop:</strong> Jika dalam 4-8 minggu tidak progres, exit [citation:2]</li>
+                        <li><strong>Time Stop:</strong> Jika dalam 4-8 minggu tidak progres, exit</li>
                     </ul>
                 </div>
                 
@@ -216,7 +225,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                 <div class="no-results">
                     <h3>📭 TIDAK ADA HASIL SCREENING</h3>
                     <p>Tidak ditemukan saham yang memenuhi kriteria 7/8 atau 8/8 pada screening kali ini.</p>
-                    <p>Tetaap patuhi aturan Minervini: "Sit-out power" - lebih baik tidak trading daripada memaksakan entry di saham yang tidak memenuhi kriteria. [citation:1]</p>
+                    <p>Tetaap patuhi aturan Minervini: "Sit-out power" - lebih baik tidak trading daripada memaksakan entry di saham yang tidak memenuhi kriteria.</p>
                 </div>
             </body>
             </html>
