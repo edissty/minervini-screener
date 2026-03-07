@@ -147,7 +147,55 @@ class MinerviniScreener:
             return 50
         except:
             return 50
-    
+
+    # ==================== VCP SCORING ====================
+    def calculate_vcp_score(self, df):
+        """
+        Menghitung VCP Score (0-100) berdasarkan kontraksi volatilitas dan volume dry-up.
+        Skor semakin tinggi menandakan pola VCP semakin ketat.
+        """
+        if df is None or len(df) < 120:
+            return 0.0, 0.0, 0.0
+
+        # --- Tightness Score (bobot 70) ---
+        windows = [20, 30, 40, 60]
+        tight_scores = []
+        for w in windows:
+            if len(df) < w + 60:
+                continue
+            # Rentang harga (high-low) rata-rata periode terakhir
+            recent_range = (df['High'].iloc[-w:] - df['Low'].iloc[-w:]).mean()
+            # Rentang harga periode historis (sebelumnya, 60 hari)
+            hist_range = (df['High'].iloc[-(w+60):-w] - df['Low'].iloc[-(w+60):-w]).mean()
+            if hist_range > 0:
+                ratio = recent_range / hist_range
+                # Semakin kecil ratio (range menyempit) -> skor tinggi
+                score = max(0, (1 - ratio) * 100)
+                tight_scores.append(min(100, score))
+        if tight_scores:
+            tight_avg = sum(tight_scores) / len(tight_scores)
+            tight_score = tight_avg * 0.7  # bobot 70%
+        else:
+            tight_score = 0
+
+        # --- Volume Dry-Up Score (bobot 30) ---
+        if len(df) >= 60:
+            recent_vol = df['Volume'].iloc[-10:].mean()
+            hist_vol = df['Volume'].iloc[-60:-10].mean()
+            if hist_vol > 0:
+                vol_ratio = recent_vol / hist_vol
+                # Semakin kecil vol_ratio (volume mengering) -> skor tinggi
+                vol_score = max(0, (1 - vol_ratio) * 100) * 0.3
+                vol_score = min(30, vol_score)
+            else:
+                vol_score = 0
+        else:
+            vol_score = 0
+
+        total = round(tight_score + vol_score, 1)
+        return total, round(tight_score, 1), round(vol_score, 1)
+    # ===================================================
+
     def check_criteria(self, df):
         """Cek 8 kriteria Minervini"""
         if df is None or len(df) < 150:
@@ -212,7 +260,7 @@ class MinerviniScreener:
         self.request_count = 0
         
         print(f"\n{'='*70}")
-        print(f"⚡ MINERVINI SCREENER - SAHAM SYARIAH")
+        print(f"⚡ MINERVINI SCREENER - SAHAM SYARIAH + VCP SCORING")
         print(f"{'='*70}")
         print(f"Total saham: {self.total_saham}")
         print(f"Target waktu: {self.total_saham * 1.5 / 60:.1f} menit")
@@ -247,12 +295,15 @@ class MinerviniScreener:
                     
                     if total_met >= 7:
                         price = criteria.get('_price', 0)
-                        # FORMAT HARGA DETAIL (TANPA K, TANPA PEMBULATAN)
+                        # FORMAT HARGA DETAIL
                         price_str = f"Rp {price:,.0f}".replace(',', '.')
                         
                         rs = criteria.get('_rs', 0)
                         from_low = criteria.get('_from_low', 0)
                         from_high = criteria.get('_from_high', 0)
+                        
+                        # Hitung VCP Score
+                        vcp_total, vcp_tight, vcp_vol = self.calculate_vcp_score(df)
                         
                         # Ticker tanpa .JK untuk tampilan
                         display_ticker = ticker.replace('.JK', '') if ticker.endswith('.JK') else ticker
@@ -262,8 +313,9 @@ class MinerviniScreener:
                             'Data': f"{len(df)}hr",
                             'Skor': f"{total_met}/8",
                             'Status': '8/8' if total_met == 8 else '7/8',
-                            'Harga': price_str,  # CONTOH: "Rp 11.250" bukan "Rp 11.2K"
+                            'Harga': price_str,
                             'RS': f"{rs:.0f}",
+                            'VCP': vcp_total,          # VCP Score
                             'Low': f"{from_low:.0f}%",
                             'High': f"{from_high:.0f}%",
                             'C1': '✓' if criteria.get('C1') else '✗',
@@ -276,7 +328,7 @@ class MinerviniScreener:
                             'C8': '✓' if criteria.get('C8') else '✗',
                         }
                         results.append(result)
-                        print(f"  ✅ LOLOS! ({total_met}/8) RS:{rs:.0f} Harga:{price_str}")
+                        print(f"  ✅ LOLOS! ({total_met}/8) RS:{rs:.0f} VCP:{vcp_total} Harga:{price_str}")
                     else:
                         print(f"  ❌ {total_met}/8")
             
@@ -296,7 +348,8 @@ class MinerviniScreener:
         
         if results:
             df_results = pd.DataFrame(results)
-            df_results = df_results.sort_values(['Status', 'RS'], ascending=[False, False])
+            # Urutkan berdasarkan Status (8/8 dulu), lalu VCP Score tertinggi
+            df_results = df_results.sort_values(['Status', 'VCP'], ascending=[False, False])
             return df_results
         
         return pd.DataFrame()
