@@ -6,7 +6,7 @@ from datetime import datetime
 
 def send_email_report(df, email_to, email_from, password, criteria, smtp_server='smtp.gmail.com', port=587):
     """
-    Mengirim laporan hasil screening ke email dengan panduan trading ala Minervini
+    Mengirim laporan hasil screening ke email dengan panduan trading ala Minervini + VCP Score
     """
     print("\n" + "=" * 50)
     print("📧 PROSES KIRIM EMAIL")
@@ -16,7 +16,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
         msg = MIMEMultipart()
         msg['From'] = email_from
         msg['To'] = email_to
-        msg['Subject'] = f"📊 Minervini Screener + Trading Guide - {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        msg['Subject'] = f"📊 Minervini Screener + VCP - {datetime.now().strftime('%d/%m/%Y %H:%M')}"
         
         if df is not None and not df.empty:
             total_8 = len(df[df['Status'] == '8/8']) if 'Status' in df.columns else 0
@@ -30,34 +30,23 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                 ticker = row['Ticker']
                 harga = row['Harga']
                 rs = row['RS'] if 'RS' in row else '70'
+                vcp = row['VCP'] if 'VCP' in row else 'N/A'
                 
                 # Parsing harga yang sudah dalam format "Rp 11.250"
                 try:
-                    # Hapus "Rp " dan titik pemisah ribuan
                     harga_clean = str(harga).replace('Rp ', '').replace('.', '')
                     harga_numeric = float(harga_clean)
                     
-                    # Entry bisa di harga saat ini atau sedikit di bawah
                     entry_price = harga_numeric
-                    
-                    # Stop loss 7-8% di bawah entry
-                    stop_loss = entry_price * 0.93  # 7% di bawah
-                    
-                    # Target 1: 20-30% (take profit sebagian)
+                    stop_loss = entry_price * 0.93  # 7% stop loss
                     target1 = entry_price * 1.20
-                    
-                    # Target 2: 50% (jika kuat)
                     target2 = entry_price * 1.50
                     
-                    # Hitung risk/reward ratio
                     risk = entry_price - stop_loss
                     reward = target1 - entry_price
-                    if risk > 0:
-                        risk_reward = reward / risk
-                    else:
-                        risk_reward = 0
+                    risk_reward = reward / risk if risk > 0 else 0
                     
-                    # Format untuk tampilan (tetap detail, tanpa K)
+                    # Format angka
                     entry_str = f"Rp {entry_price:,.0f}".replace(',', '.')
                     stop_str = f"Rp {stop_loss:,.0f}".replace(',', '.')
                     target1_str = f"Rp {target1:,.0f}".replace(',', '.')
@@ -94,6 +83,10 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                             <td style="padding: 8px;"><strong>Risk/Reward:</strong></td>
                             <td style="padding: 8px;">1 : {risk_reward:.1f} (minimal 2:1 ideal)</td>
                         </tr>
+                        <tr>
+                            <td style="padding: 8px;"><strong>VCP Score:</strong></td>
+                            <td style="padding: 8px;">{vcp} / 100 (≥70 sangat baik, siap breakout)</td>
+                        </tr>
                     </table>
                 </div>
                 """
@@ -120,7 +113,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                 </style>
             </head>
             <body>
-                <h2>📈 MINERVINI STOCK SCREENER + TRADING GUIDE</h2>
+                <h2>📈 MINERVINI STOCK SCREENER + VCP SCORING</h2>
                 <p><strong>Waktu Screening:</strong> {datetime.now().strftime('%d-%m-%Y %H:%M:%S')} WIB</p>
                 
                 <div class="summary">
@@ -144,6 +137,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                         <li><strong>C7:</strong> Harga dalam 25% dari 52-Week High</li>
                         <li><strong>C8:</strong> Relative Strength > 70</li>
                     </ul>
+                    <p style="margin-top:10px;"><strong>VCP Score:</strong> 0-100, semakin tinggi semakin siap breakout (≥70 sangat baik).</p>
                 </div>
                 
                 <h3>📋 DETAIL SAHAM LOLOS SCREENING</h3>
@@ -172,9 +166,9 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                 </div>
                 
                 <div class="rules" style="background-color: #e8f4fd;">
-                    <h4>📌 Strategi Entry & Exit Minervini</h4>
+                    <h4>📌 Strategi Entry & Exit Minervini + VCP</h4>
                     <ul>
-                        <li><strong>Entry:</strong> Tunggu breakout dengan volume >150% rata-rata</li>
+                        <li><strong>Entry:</strong> Tunggu breakout dengan volume >150% rata-rata, preferensi VCP Score ≥70</li>
                         <li><strong>Stop Loss:</strong> 7-8% dari harga entry (WAJIB!)</li>
                         <li><strong>Take Profit 1 (20-30%):</strong> Jual 30-50% posisi, trailing stop sisanya</li>
                         <li><strong>Take Profit 2 (50%+):</strong> Gunakan trailing stop (MA10 atau MA20)</li>
@@ -183,7 +177,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                 </div>
                 
                 <div class="footer">
-                    <p><i>Disclaimer: Screening ini menggunakan data Yahoo Finance. Harga entry dan stop loss adalah estimasi. Selalu lakukan analisis sendiri dan sesuaikan dengan modal Anda.</i></p>
+                    <p><i>Disclaimer: Screening ini menggunakan data Yahoo Finance. Harga entry dan stop loss adalah estimasi. VCP Score hanya indikator tambahan. Selalu lakukan analisis sendiri.</i></p>
                     <p><i>Risk Management: Jangan pernah risiko >2% modal per trade. Untuk modal Rp 100jt, risiko maksimal Rp 2jt per trade.</i></p>
                     <p>Generated by Minervini Screener GitHub Actions • {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}</p>
                 </div>
@@ -199,7 +193,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
             msg.attach(attachment)
             
         else:
-            # Email ketika tidak ada hasil (tetap kasih panduan umum)
+            # Email ketika tidak ada hasil
             body = f"""
             <html>
             <head>
@@ -231,7 +225,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
         server.send_message(msg)
         server.quit()
         
-        print("✅ EMAIL DENGAN TRADING GUIDE BERHASIL DIKIRIM!")
+        print("✅ EMAIL DENGAN VCP SCORE BERHASIL DIKIRIM!")
         return True
         
     except Exception as e:
