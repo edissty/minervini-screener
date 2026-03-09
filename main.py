@@ -3,6 +3,7 @@ import sys
 from datetime import datetime
 from src.minervini_screener import MinerviniScreener
 from src.email_sender import send_email_report
+from src.sheets_sender import send_to_google_sheets, test_connection  # TAMBAHKAN
 
 def main():
     print("=" * 70)
@@ -15,10 +16,15 @@ def main():
     email_password = os.environ.get('EMAIL_PASSWORD', '')
     email_to = os.environ.get('EMAIL_TO', 'edissty@gmail.com')
     
+    # CEK GOOGLE SHEETS WEBHOOK (TAMBAHKAN)
+    google_sheets_url = os.environ.get('GOOGLE_SHEETS_WEBHOOK', '')
+    
     print("\n📧 Konfigurasi Email:")
     print(f"   Dari : {'✓' if email_from else '✗'} {email_from}")
     print(f"   Ke   : {'✓' if email_to else '✗'} {email_to}")
-    print(f"   Pass : {'✓' if email_password else '✗'} ({len(email_password)} chars)")
+    
+    print("\n📊 Konfigurasi Google Sheets:")
+    print(f"   Webhook : {'✓' if google_sheets_url else '✗'}")
     
     # BACA DAFTAR SAHAM
     stocks_file = "config/stocks_list.txt"
@@ -29,21 +35,15 @@ def main():
             stocks = []
             for line in f:
                 line = line.strip()
-                # Skip baris kosong dan komentar
                 if line and not line.startswith('#'):
-                    # Ambil hanya kode saham (sebelum # atau spasi)
                     if '#' in line:
                         ticker = line.split('#')[0].strip()
                     else:
                         ticker = line.strip()
-                    
-                    # Pastikan tidak kosong
                     if ticker:
                         stocks.append(ticker)
         
         print(f"✓ Total saham ditemukan: {len(stocks)}")
-        if stocks:
-            print(f"  Contoh 5 pertama: {', '.join(stocks[:5])}")
     except FileNotFoundError:
         print(f"✗ ERROR: File {stocks_file} tidak ditemukan!")
         sys.exit(1)
@@ -61,17 +61,10 @@ def main():
         print("\n✅ SCREENING SELESAI!")
         print(f"📊 Saham lolos: {len(results_df)}")
         
-        # Hitung statistik
         count_8 = len(results_df[results_df['Status'] == '8/8'])
         count_7 = len(results_df[results_df['Status'] == '7/8'])
-        
         print(f"   - 8/8: {count_8}")
         print(f"   - 7/8: {count_7}")
-        
-        # Tampilkan hasil
-        print("\n📋 DAFTAR SAHAM LOLOS:")
-        for idx, row in results_df.iterrows():
-            print(f"   {row['Ticker']}: {row['Status']} - {row['Harga']}")
         
         # SIMPAN CSV
         os.makedirs("results", exist_ok=True)
@@ -79,6 +72,13 @@ def main():
         filename = f"results/screening_{timestamp}.csv"
         results_df.to_csv(filename, index=False)
         print(f"\n💾 Hasil disimpan ke: {filename}")
+        
+        # ===== TAMBAHKAN PENGIRIMAN KE GOOGLE SHEETS =====
+        if google_sheets_url:
+            print("\n📊 Mengirim ke Google Sheets...")
+            send_to_google_sheets(results_df, google_sheets_url)
+        else:
+            print("\n⚠ GOOGLE_SHEETS_WEBHOOK tidak dikonfigurasi")
         
         # KIRIM EMAIL
         if email_from and email_password:
@@ -93,7 +93,7 @@ def main():
     else:
         print("\n📭 TIDAK ADA SAHAM LOLOS SCREENING")
         
-        # Kirim notifikasi
+        # Tetap kirim notifikasi email
         if email_from and email_password:
             send_email_report(
                 None, 
