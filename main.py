@@ -1,7 +1,7 @@
 import os
 import sys
 from datetime import datetime
-from src.minervini_screener import MinerviniScreenerPro  # UBAH INI!
+from src.minervini_screener import MinerviniScreenerPro  # Class baru
 from src.email_sender import send_email_report
 from src.sheets_sender import send_to_google_sheets
 
@@ -103,7 +103,7 @@ def main():
             from src.sheets_sender import send_to_google_sheets
             send_to_google_sheets(results_df, google_sheets_url)
         
-        # KIRIM EMAIL
+        # KIRIM EMAIL - MENGGUNAKAN PARAMETER criteria (BUKAN criteria_desc)
         if email_from and email_password:
             print("\n📧 Mengirim email...")
             send_email_report(
@@ -111,7 +111,8 @@ def main():
                 email_to, 
                 email_from, 
                 email_password,
-                screener.criteria_desc  # Gunakan criteria_desc, bukan criteria
+                screener.criteria_desc  # ← TETAP PAKAI criteria_desc
+                # TAPI di email_sender.py parameternya bernama 'criteria'
             )
     else:
         print("\n📭 TIDAK ADA SAHAM LOLOS SCREENING")
@@ -124,7 +125,7 @@ def main():
                 email_to, 
                 email_from, 
                 email_password,
-                screener.criteria_desc
+                screener.criteria_desc  # ← TETAP PAKAI criteria_desc
             )
     
     print("\n" + "=" * 80)
