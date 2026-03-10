@@ -1,294 +1,634 @@
-# DAFTAR LENGKAP SAHAM SYARIAH INDONESIA
+# DAFTAR LENGKAP SAHAM SYARIAH INDONESIA ISSI
 # Format: kode.JK (WAJIB)
 # Total: 200+ saham syariah paling likuid
-
-# ==================== SEKTOR ENERGI (25 SAHAM) ====================
-ADRO.JK  # Alamtri Resources Indonesia
-ADMR.JK  # Adaro Minerals Indonesia
-AKRA.JK  # AKR Corporindo
-BUMI.JK  # Bumi Resources
-BYAN.JK  # Bayan Resources
-DEWA.JK  # Darma Henwa
-DOID.JK  # Delta Dunia Makmur
-ELSA.JK  # Elnusa
-ENRG.JK  # Energi Mega Persada
-GEMS.JK  # Golden Energy Mines
-HRUM.JK  # Harum Energy
-INDY.JK  # Indika Energy
-ITMG.JK  # Indo Tambangraya Megah
-KKGI.JK  # Resource Alam Indonesia
-MEDC.JK  # Medco Energi Internasional
-MITI.JK  # Mitra Investindo
-MYOH.JK  # Samindo Resources
-PGAS.JK  # Perusahaan Gas Negara
-PGEO.JK  # Pertamina Geothermal Energy
-PTBA.JK  # Bukit Asam
-PTRO.JK  # Petrosea
-RAFI.JK  # Sumber Mineral Global Abadi
-SGER.JK  # Sumber Global Energy
-TOBA.JK  # TBS Energi Utama
-TPMA.JK  # Trans Power Marine
-
-# ==================== SEKTOR BAHAN BAKU (30 SAHAM) ====================
-ANTM.JK  # Aneka Tambang
-ARNA.JK  # Arwana Citramulia
-BAJA.JK  # Saranacentral Bajatama
-BRMS.JK  # Bumi Resources Minerals
-DKFT.JK  # Central Omega Resources
-INCO.JK  # Vale Indonesia
-INKP.JK  # Indah Kiat Pulp & Paper
-INTP.JK  # Indocement Tunggal Prakarsa
-KDSI.JK  # Kedawung Setia
-MDKA.JK  # Merdeka Copper Gold
-NCKL.JK  # Trimegah Bangun Persada
-PURE.JK  # Trinitan Metals and Minerals
-PSAB.JK  # J Resources Asia
-SMCB.JK  # Solusi Bangun Indonesia
-SMGR.JK  # Semen Indonesia
-SPMA.JK  # Suparma
-TINS.JK  # Timah
-TKIM.JK  # Pabrik Kertas Tjiwi Kimia
-ZINC.JK  # Kapuas Prima Coal
-KBRI.JK  # Kertas Basuki Rachmat
-KBLI.JK  # KMI Wire & Cable
-KBLM.JK  # Kabelindo Murni
-LMSH.JK  # Lionmesh Prima
-LION.JK  # Lion Metal Works
-NIKL.JK  # Pelat Timah Nusantara
-PICO.JK  # Pelangi Indah Canindo
-PRAS.JK  # Prima Alloy Steel
-SCCO.JK  # Supreme Cable Manufacturing
-TOTO.JK  # Surya Toto Indonesia
-TRST.JK  # Trias Sentosa
-
-# ==================== SEKTOR PERINDUSTRIAN (20 SAHAM) ====================
-ACST.JK  # Acset Indonusa
-ADHI.JK  # Adhi Karya
-ASII.JK  # Astra International
-BUKK.JK  # Bukaka Teknik Utama
-INDR.JK  # Indo-Rama Synthetics
-KRAH.JK  # Grand Kartech
-LPIN.JK  # Multi Prima Sejahtera
-MTLA.JK  # Metropolitan Land
-PTPP.JK  # PP Persero
-PURE.JK  # Trinitan Metals
-TOTL.JK  # Total Bangun Persada
-TRIS.JK  # Trisula International
-UNIC.JK  # Unggul Indah Cahaya
-UNTR.JK  # United Tractors
-WEGE.JK  # Wijaya Karya Bangunan Gedung
-WIKA.JK  # Wijaya Karya
-WSKT.JK  # Waskita Karya
-WSBP.JK  # Waskita Beton Precast
-WTON.JK  # Wijaya Karya Beton
-BUDI.JK  # Budi Starch & Sweetener
-
-# ==================== SEKTOR KONSUMEN PRIMER (40 SAHAM) ====================
-AALI.JK  # Astra Agro Lestari
-ADES.JK  # Akasha Wira
-BISI.JK  # BISI International
-BWPT.JK  # Eagle High Plantations
-CAMP.JK  # Campina Ice Cream
-CLEO.JK  # Sariguna Primatirta
-CPIN.JK  # Charoen Pokphand
-DLTA.JK  # Delta Djakarta
-DVLA.JK  # Darya Varia
-GZCO.JK  # Gozco Plantations
-HMSP.JK  # H.M. Sampoerna
-ICBP.JK  # Indofood CBP
-INDF.JK  # Indofood Sukses Makmur
-JAWA.JK  # Jaya Agra Wattie
-JPFA.JK  # Japfa Comfeed
-KAEF.JK  # Kimia Farma
-KLBF.JK  # Kalbe Farma
-LSIP.JK  # PP London Sumatra
-MAIN.JK  # Malindo Feedmil
-MERK.JK  # Merck Indonesia
-MGRO.JK  # Mahkota Group
-MLBI.JK  # Multi Bintang Indonesia
-MYOR.JK  # Mayora Indah
-PALM.JK  # Provident Agro
-PYFA.JK  # Pyridam Farma
-ROTI.JK  # Nippon Indosari
-SIDO.JK  # Sido Muncul
-SIMP.JK  # Salim Ivomas Pratama
-SGRO.JK  # Sampoerna Agro
-SKBM.JK  # Sekar Bumi
-SKLT.JK  # Sekar Laut
-SSMS.JK  # Sawit Sumbermas
-STTP.JK  # Siantar Top
-TCID.JK  # Mandom Indonesia
-TSPC.JK  # Tempo Scan Pacific
-ULTJ.JK  # Ultra Jaya
-UNVR.JK  # Unilever Indonesia
-VICI.JK  # Victoria Care Indonesia
-WIIM.JK  # Wismilak Inti Makmur
-DMND.JK  # Diamond Food Indonesia
-
-# ==================== SEKTOR KONSUMEN NON-PRIMER (30 SAHAM) ====================
-ACES.JK  # Ace Hardware
-AMRT.JK  # Sumber Alfaria Trijaya
-AUTO.JK  # Astra Otoparts
-BRAM.JK  # Indo Kordsa
-CSAP.JK  # Catur Sentosa Adiprana
-DIVA.JK  # Distribusi Voucher Nusantara
-ERAA.JK  # Erajaya Swasembada
-GJTL.JK  # Gajah Tunggal
-HEXA.JK  # Hexindo Adiperkasa
-IMAS.JK  # Indomobil Sukses
-INTA.JK  # Intraco Penta
-ITIC.JK  # Indonesian Tobacco
-LPPF.JK  # Matahari Department Store
-MAPI.JK  # Mitra Adiperkasa
-MAPB.JK  # MAP Boga Adiperkasa
-MBTO.JK  # Martina Berto
-MCOR.JK  # Bank China Construction
-MIDI.JK  # Midi Utama Indonesia
-MIRA.JK  # Mitra International
-MPMX.JK  # Mitra Pinasthika Mustika
-MSIN.JK  # MNC Studios
-NIPS.JK  # Nipress
-PTSP.JK  # Pioneerindo Gourmet
-RALS.JK  # Ramayana Lestari
-RANC.JK  # Supra Boga Lestari
-SMSM.JK  # Selamat Sempurna
-SONA.JK  # Sona Topas Tourism
-TRIO.JK  # Trikomsel Oke
-TURI.JK  # Tunas Ridean
-VOKS.JK  # Voksel Electric
-
-# ==================== SEKTOR KESEHATAN (10 SAHAM) ====================
-HEAL.JK  # Medikaloka Hermina
-MIKA.JK  # Mitra Keluarga
-PRDA.JK  # Prodia Widyahusada
-RSGK.JK  # Kedoya Adyaraya
-SAME.JK  # Rama Pharma
-SILO.JK  # Siloam Hospitals
-CARE.JK  # Metro Healthcare
-IRRA.JK  # Itama Ranoraya
-BMHS.JK  # Bundamedik
-OCAP.JK  # Onix Capital
-
-# ==================== SEKTOR INFRASTRUKTUR (25 SAHAM) ====================
-CINT.JK  # Chitose Internasional
-CMNP.JK  # Citra Marga Nusaphala
-EXCL.JK  # XL Axiata
-FREN.JK  # Smartfren
-ISAT.JK  # Indosat
-JSMR.JK  # Jasa Marga
-KEEN.JK  # Kencana Energi Lestari
-MTEL.JK  # Dayamitra Telekomunikasi
-PGEO.JK  # Pertamina Geothermal
-TBIG.JK  # Tower Bersama Infrastructure
-TLKM.JK  # Telkom Indonesia
-TOWR.JK  # Sarana Menara Nusantara
-BALI.JK  # Bali Towerindo Sentra
-CENT.JK  # Centratama Telekomunikasi
-GOLD.JK  # Trimegah Karya Pratama
-IBST.JK  # Inti Bangun Sejahtera
-LCGP.JK  # Logistic Capex
-META.JK  # Nusantara Infrastructure
-PANS.JK  # Paninvest
-SUPR.JK  # Solusi Tunas Pratama
-TARA.JK  # Agung Semesta Sejahtera
-TOPS.JK  # Totalindo Eka Persada
-TPIA.JK  # Chandra Asri
-YELO.JK  # Yelooo Integra Datanet
-ZBRA.JK  # Zebra Nusantara
-
-# ==================== SEKTOR KEUANGAN SYARIAH (15 SAHAM) ====================
-AMAR.JK  # Bank Amar Indonesia
-ARTO.JK  # Bank Jago
-BANK.JK  # Bank Aladin Syariah
-BBTN.JK  # Bank Tabungan Negara
-BEBE.JK  # Bank Pembangunan Daerah
-BJBR.JK  # Bank Jabar Banten
-BJTM.JK  # Bank Jatim
-BNGA.JK  # Bank CIMB Niaga
-BNII.JK  # Bank Maybank
-BPFI.JK  # Batavia Prosperindo Finans
-BRIS.JK  # Bank Syariah Indonesia
-BTPS.JK  # Bank BTPN Syariah
-DEFI.JK  # Danasupra Erapacific
-MASB.JK  # Bank Multiarta Sentosa
-PNBS.JK  # Bank Panin Dubai Syariah
-
-# ==================== SEKTOR TEKNOLOGI (15 SAHAM) ====================
-DCII.JK  # DCI Indonesia
-DIGI.JK  # Arkadia Digital Media
-DNET.JK  # Indoritel Makmur Internasional
-EDGE.JK  # Indointernet
-EMTK.JK  # Elang Mahkota Teknologi
-GOTO.JK  # GoTo Gojek Tokopedia
-LUCK.JK  # Lucky Indah Keramik
-MCAS.JK  # M Cash Integrasi
-MLPT.JK  # Multipolar Technology
-MTDL.JK  # Metrodata Electronics
-PTSN.JK  # Sat Nusapersada
-SCMA.JK  # Surya Citra Media
-TFAS.JK  # Telefast Indonesia
-TRUK.JK  # Guna Timur Raya
-WIFI.JK  # Solusi Sinergi Digital
-
-# ==================== SEKTOR PROPERTI (30 SAHAM) ====================
-ASRI.JK  # Alam Sutera Realty
-BAPA.JK  # Bekasi Asri Pemula
-BEST.JK  # Bekasi Fajar Industrial
-BSDE.JK  # Bumi Serpong Damai
-CTRA.JK  # Ciputra Development
-DILD.JK  # Intiland Development
-GPRA.JK  # Perdana Gapuraprima
-JRPT.JK  # Jaya Real Property
-KIJA.JK  # Kawasan Industri Jababeka
-LPKR.JK  # Lippo Karawaci
-MKPI.JK  # Metropolitan Kentjana
-MTLA.JK  # Metropolitan Land
-POLL.JK  # Pollux Hotels
-PPRO.JK  # PP Properti
-PWON.JK  # Pakuwon Jati
-RDTX.JK  # Roda Vivatex
-SMRA.JK  # Summarecon Agung
-APLN.JK  # Agung Podomoro Land
-BCIP.JK  # Bumi Citra Permai
-BKSL.JK  # Sentul City
-DMAS.JK  # Puradelta Lestari
-EMDE.JK  # Megapolitan Developments
-FORZ.JK  # Forza Land Indonesia
-GAMA.JK  # Gading Development
-GWSA.JK  # Greenwood Sejahtera
-INPP.JK  # Indonesian Paradise Property
-KOTA.JK  # DMS Propertindo
-LPCK.JK  # Lippo Cikarang
-MORE.JK  # Morenzo Abadi Perkasa
-NIRO.JK  # City Retail Developments
-
-# ==================== SEKTOR TRANSPORTASI (15 SAHAM) ====================
-ASSI.JK  # Adi Sarana Armada
-BIRD.JK  # Blue Bird
-BPTR.JK  # Batavia Prosperindo Trans
-CMPP.JK  # AirAsia Indonesia
-GIAA.JK  # Garuda Indonesia
-HITS.JK  # Humpuss Intermoda
-IPCM.JK  # Jasa Armada Indonesia
-LRNA.JK  # Eka Sari Lorena
-NELY.JK  # Pelayaran Nelly Dwi Putri
-SAFE.JK  # Steady Safe
-SDMU.JK  # Sidomulyo Selaras
-SMDR.JK  # Samudera Indonesia
-TAXI.JK  # Express Transindo Utama
-TMAS.JK  # Temas Tbk
-WINS.JK  # Wintermar Offshore Marine
-
-# ==================== SEKTOR PERDAGANGAN & JASA (10 SAHAM) ====================
-AKSI.JK  # Mineral Sumberdaya Mandiri
-CARS.JK  # Industri dan Perdagangan
-FORU.JK  # Fortune Indonesia
-INPP.JK  # Indonesian Paradise Property
-MAMI.JK  # Mas Murni Indonesia
-MDRN.JK  # Modern Internasional
-MICE.JK  # Multi Indocitra
-MINA.JK  # Sanurhasta Mitra
-NUSA.JK  # Sinergi Megah Internusa
-SRAJ.JK  # Sejahteraraya Anugrahjaya
-
-# ==================== TOTAL: 220+ SAHAM SYARIAH ====================
+AADI.JK
+AALI.JK
+ABMM.JK
+ACES.JK
+ACST.JK
+ADCP.JK
+ADES.JK
+ADHI.JK
+ADMG.JK
+ADMR.JK
+ADRO.JK
+AGAR.JK
+AGII.JK
+AIMS.JK
+AISA.JK
+AKKU.JK
+AKPI.JK
+AKRA.JK
+AKSI.JK
+ALDO.JK
+ALKA.JK
+AMAN.JK
+AMFG.JK
+AMIN.JK
+ANDI.JK
+ANJT.JK
+ANTM.JK
+APII.JK
+APLI.JK
+APLN.JK
+ARCI.JK
+AREA.JK
+ARGO.JK
+ARII.JK
+ARNA.JK
+ARTA.JK
+ASGR.JK
+ASHA.JK
+ASII.JK
+ASLC.JK
+ASLI.JK
+ASPI.JK
+ASRI.JK
+ASSA.JK
+ATAP.JK
+ATIC.JK
+ATLA.JK
+AUTO.JK
+AVIA.JK
+AWAN.JK
+AXIO.JK
+AYAM.JK
+AYLS.JK
+BABY.JK
+BAIK.JK
+BANK.JK
+BAPI.JK
+BATA.JK
+BATR.JK
+BAUT.JK
+BAYU.JK
+BBRM.JK
+BBSS.JK
+BCIP.JK
+BDKR.JK
+BEEF.JK
+BELI.JK
+BELL.JK
+BESS.JK
+BEST.JK
+BIKE.JK
+BINO.JK
+BIPP.JK
+BIRD.JK
+BISI.JK
+BKDP.JK
+BKSL.JK
+BLES.JK
+BLOG.JK
+BLTA.JK
+BLTZ.JK
+BLUE.JK
+BMHS.JK
+BMSR.JK
+BMTR.JK
+BNBR.JK
+BOAT.JK
+BOBA.JK
+BOGA.JK
+BOLA.JK
+BOLT.JK
+BRAM.JK
+BRIS.JK
+BRMS.JK
+BRNA.JK
+BRPT.JK
+BRRC.JK
+BSBK.JK
+BSDE.JK
+BSML.JK
+BSSR.JK
+BTPS.JK
+BUAH.JK
+BUKK.JK
+BULL.JK
+BUMI.JK
+BUVA.JK
+BYAN.JK
+CAKK.JK
+CAMP.JK
+CANI.JK
+CARE.JK
+CASS.JK
+CBDK.JK
+CBPE.JK
+CBRE.JK
+CCSI.JK
+CEKA.JK
+CGAS.JK
+CHEK.JK
+CHEM.JK
+CINT.JK
+CITA.JK
+CITY.JK
+CLEO.JK
+CLPI.JK
+CMNP.JK
+CMPP.JK
+CMRY.JK
+CNKO.JK
+CNMA.JK
+COAL.JK
+CPIN.JK
+CPRO.JK
+CRAB.JK
+CRSN.JK
+CSAP.JK
+CSIS.JK
+CSMI.JK
+CSRA.JK
+CTBN.JK
+CTRA.JK
+CYBR.JK
+DAAZ.JK
+DADA.JK
+DATA.JK
+DAYA.JK
+DCII.JK
+DEFI.JK
+DEPO.JK
+DEWA.JK
+DEWI.JK
+DGIK.JK
+DGNS.JK
+DGWG.JK
+DILD.JK
+DIVA.JK
+DKFT.JK
+DKHH.JK
+DMAS.JK
+DMMX.JK
+DMND.JK
+DOOH.JK
+DOSS.JK
+DRMA.JK
+DSFI.JK
+DSNG.JK
+DSSA.JK
+DUTI.JK
+DVLA.JK
+DWGL.JK
+DYAN.JK
+EAST.JK
+ECII.JK
+EDGE.JK
+EKAD.JK
+ELIT.JK
+ELPI.JK
+ELSA.JK
+ELTY.JK
+EMDE.JK
+ENAK.JK
+ENRG.JK
+EPAC.JK
+EPMT.JK
+ERAA.JK
+ERAL.JK
+ESIP.JK
+ESSA.JK
+ESTA.JK
+EXCL.JK
+FAST.JK
+FASW.JK
+FILM.JK
+FIRE.JK
+FISH.JK
+FITT.JK
+FMII.JK
+FOLK.JK
+FOOD.JK
+FORE.JK
+FPNI.JK
+FUTR.JK
+FWCT.JK
+GDST.JK
+GDYR.JK
+GEMA.JK
+GEMS.JK
+GGRP.JK
+GHON.JK
+GIAA.JK
+GJTL.JK
+GLVA.JK
+GMTD.JK
+GOLD.JK
+GOLF.JK
+GOOD.JK
+GPRA.JK
+GPSO.JK
+GRIA.JK
+GRPH.JK
+GTBO.JK
+GTRA.JK
+GTSI.JK
+GULA.JK
+GUNA.JK
+GWSA.JK
+GZCO.JK
+HADE.JK
+HAIS.JK
+HALO.JK
+HATM.JK
+HDIT.JK
+HEAL.JK
+HERO.JK
+HEXA.JK
+HGII.JK
+HITS.JK
+HOKI.JK
+HOMI.JK
+HOPE.JK
+HRME.JK
+HRUM.JK
+HUMI.JK
+HYGN.JK
+IATA.JK
+IBST.JK
+ICBP.JK
+ICON.JK
+IDPR.JK
+IFII.JK
+IFSH.JK
+IGAR.JK
+IIKP.JK
+IKAI.JK
+IKAN.JK
+IKBI.JK
+IKPM.JK
+IMPC.JK
+INCI.JK
+INCO.JK
+INDF.JK
+INDR.JK
+INDS.JK
+INDX.JK
+INDY.JK
+INET.JK
+INKP.JK
+INPP.JK
+INTD.JK
+INTP.JK
+IOTF.JK
+IPCC.JK
+IPCM.JK
+IPOL.JK
+IPTV.JK
+IRRA.JK
+IRSX.JK
+ISAT.JK
+ISSP.JK
+ITMA.JK
+ITMG.JK
+JAST.JK
+JATI.JK
+JAWA.JK
+JAYA.JK
+JECC.JK
+JGLE.JK
+JIHD.JK
+JKON.JK
+JMAS.JK
+JPFA.JK
+JRPT.JK
+JSMR.JK
+JSPT.JK
+JTPE.JK
+KAQI.JK
+KARW.JK
+KBAG.JK
+KBLI.JK
+KBLM.JK
+KDSI.JK
+KDTN.JK
+KEEN.JK
+KEJU.JK
+KETR.JK
+KIAS.JK
+KICI.JK
+KIJA.JK
+KINO.JK
+KIOS.JK
+KJEN.JK
+KKES.JK
+KKGI.JK
+KLAS.JK
+KLBF.JK
+KMDS.JK
+KOBX.JK
+KOCI.JK
+KOIN.JK
+KOKA.JK
+KONI.JK
+KOPI.JK
+KOTA.JK
+KPIG.JK
+KREN.JK
+KRYA.JK
+KSIX.JK
+KUAS.JK
+LABA.JK
+LABS.JK
+LAJU.JK
+LAND.JK
+LCKM.JK
+LION.JK
+LIVE.JK
+LMPI.JK
+LMSH.JK
+LPCK.JK
+LPIN.JK
+LPKR.JK
+LPLI.JK
+LPPF.JK
+LRNA.JK
+LSIP.JK
+LTLS.JK
+LUCK.JK
+MAHA.JK
+MAIN.JK
+MAPA.JK
+MAPB.JK
+MAPI.JK
+MARK.JK
+MAXI.JK
+MBAP.JK
+MBMA.JK
+MBTO.JK
+MCAS.JK
+MCOL.JK
+MDIY.JK
+MDKA.JK
+MDKI.JK
+MDLA.JK
+MEDC.JK
+MEDS.JK
+MERI.JK
+MERK.JK
+META.JK
+MFMI.JK
+MGNA.JK
+MHKI.JK
+MICE.JK
+MIDI.JK
+MIKA.JK
+MINA.JK
+MINE.JK
+MIRA.JK
+MITI.JK
+MKAP.JK
+MKPI.JK
+MKTR.JK
+MLIA.JK
+MLPL.JK
+MLPT.JK
+MMIX.JK
+MMLP.JK
+MNCN.JK
+MORA.JK
+MPIX.JK
+MPMX.JK
+MPOW.JK
+MPPA.JK
+MPRO.JK
+MRAT.JK
+MSIN.JK
+MSJA.JK
+MSKY.JK
+MSTI.JK
+MTDL.JK
+MTEL.JK
+MTFN.JK
+MTLA.JK
+MTMH.JK
+MTPS.JK
+MTSM.JK
+MUTU.JK
+MYOH.JK
+MYOR.JK
+NAIK.JK
+NASA.JK
+NASI.JK
+NCKL.JK
+NELY.JK
+NEST.JK
+NETV.JK
+NFCX.JK
+NICE.JK
+NICL.JK
+NIKL.JK
+NPGF.JK
+NRCA.JK
+NTBK.JK
+NZIA.JK
+OASA.JK
+OBAT.JK
+OBMD.JK
+OILS.JK
+OKAS.JK
+OMED.JK
+OMRE.JK
+PADA.JK
+PALM.JK
+PAMG.JK
+PANI.JK
+PANR.JK
+PART.JK
+PBID.JK
+PBSA.JK
+PCAR.JK
+PDES.JK
+PDPP.JK
+PEHA.JK
+PEVE.JK
+PGAS.JK
+PGEO.JK
+PGLI.JK
+PGUN.JK
+PICO.JK
+PIPA.JK
+PJAA.JK
+PJHB.JK
+PKPK.JK
+PLIN.JK
+PMJS.JK
+PMUI.JK
+PNBS.JK
+PNGO.JK
+PNSE.JK
+POLI.JK
+POLU.JK
+PORT.JK
+POWR.JK
+PPRE.JK
+PPRI.JK
+PPRO.JK
+PRAY.JK
+PRDA.JK
+PRIM.JK
+PSAB.JK
+PSAT.JK
+PSDN.JK
+PSGO.JK
+PSKT.JK
+PSSI.JK
+PTBA.JK
+PTIS.JK
+PTMP.JK
+PTMR.JK
+PTPP.JK
+PTPS.JK
+PTPW.JK
+PTSN.JK
+PTSP.JK
+PURA.JK
+PURI.JK
+PWON.JK
+PZZA.JK
+RAAM.JK
+RAFI.JK
+RAJA.JK
+RALS.JK
+RANC.JK
+RATU.JK
+RBMS.JK
+RDTX.JK
+RGAS.JK
+RIGS.JK
+RISE.JK
+RMKE.JK
+RMKO.JK
+ROCK.JK
+RODA.JK
+RONY.JK
+ROTI.JK
+RSGK.JK
+RUIS.JK
+SAFE.JK
+SAGE.JK
+SAME.JK
+SAMF.JK
+SAPX.JK
+SATU.JK
+SBMA.JK
+SCCO.JK
+SCNP.JK
+SCPI.JK
+SEMA.JK
+SGER.JK
+SGRO.JK
+SHID.JK
+SHIP.JK
+SICO.JK
+SIDO.JK
+SILO.JK
+SIMP.JK
+SIPD.JK
+SKBM.JK
+SKLT.JK
+SKRN.JK
+SLIS.JK
+SMAR.JK
+SMBR.JK
+SMCB.JK
+SMDM.JK
+SMDR.JK
+SMGA.JK
+SMGR.JK
+SMIL.JK
+SMKL.JK
+SMLE.JK
+SMMT.JK
+SMRA.JK
+SMSM.JK
+SNLK.JK
+SOCI.JK
+SOHO.JK
+SOLA.JK
+SONA.JK
+SOSS.JK
+SOTS.JK
+SPMA.JK
+SPTO.JK
+SRTG.JK
+SSIA.JK
+SSTM.JK
+STAA.JK
+STTP.JK
+SULI.JK
+SUNI.JK
+SUPR.JK
+SURI.JK
+SWID.JK
+TALF.JK
+TAMA.JK
+TAMU.JK
+TAPG.JK
+TARA.JK
+TAXI.JK
+TBMS.JK
+TCID.JK
+TCPI.JK
+TEBE.JK
+TFAS.JK
+TFCO.JK
+TGKA.JK
+TGUK.JK
+TINS.JK
+TIRA.JK
+TIRT.JK
+TKIM.JK
+TLDN.JK
+TLKM.JK
+TMAS.JK
+TMPO.JK
+TNCA.JK
+TOBA.JK
+TOOL.JK
+TOSK.JK
+TOTL.JK
+TOTO.JK
+TPIA.JK
+TPMA.JK
+TRIS.JK
+TRJA.JK
+TRON.JK
+TRST.JK
+TRUE.JK
+TRUK.JK
+TSPC.JK
+TYRE.JK
+UANG.JK
+UCID.JK
+UFOE.JK
+ULTJ.JK
+UNIC.JK
+UNIQ.JK
+UNTR.JK
+UNVR.JK
+UVCR.JK
+VAST.JK
+VERN.JK
+VICI.JK
+VISI.JK
+VKTR.JK
+VOKS.JK
+WAPO.JK
+WEGE.JK
+WEHA.JK
+WINR.JK
+WINS.JK
+WIRG.JK
+WMUU.JK
+WOOD.JK
+WOWS.JK
+WTON.JK
+YELO.JK
+YPAS.JK
+YUPI.JK
+ZATA.JK
+ZONE.JK
+ZYRX.JK
