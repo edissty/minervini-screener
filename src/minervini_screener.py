@@ -1,355 +1,510 @@
+# ============================================
+# MINERVINI PRO SCREENER - SAHAM SYARIAH INDONESIA
+# Versi 4.0 - Dengan RS vs IHSG & VCP Scoring
+# ============================================
+
 import yfinance as yf
 import pandas as pd
 import numpy as np
 import time
 import random
-from datetime import datetime
+import logging
+import sys
+from datetime import datetime, timedelta
 from curl_cffi import requests
 
-class MinerviniScreener:
-    def __init__(self):
-        self.criteria = {
-            'C1': 'Harga > MA150 dan MA200',
+class MinerviniScreenerPro:
+    """
+    Screener saham syariah Indonesia dengan 8 kriteria Minervini + VCP Scoring
+    dan Relative Strength vs IHSG yang akurat.
+    """
+    
+    def __init__(self, min_turnover=500_000_000, log_level=logging.INFO):
+        """
+        Inisialisasi screener
+        
+        Args:
+            min_turnover: Minimal turnover (harga * volume) untuk filter likuiditas
+            log_level: Level logging (INFO, DEBUG, etc)
+        """
+        self.criteria_desc = {
+            'C1': 'Harga > MA150 & MA200',
             'C2': 'MA150 > MA200',
-            'C3': 'MA200 Menanjak (lebih tinggi dari 1 bulan lalu)',
-            'C4': 'MA50 > MA150 dan MA200',
+            'C3': 'MA200 Trending Up (1 bulan)',
+            'C4': 'MA50 > MA150 & MA200',
             'C5': 'Harga > MA50',
-            'C6': 'Harga > 30% dari 52-Week Low',
-            'C7': 'Harga dalam 25% dari 52-Week High',
-            'C8': 'Relative Strength (RS) > 70'
+            'C6': 'Harga > 30% dari Low 52-W',
+            'C7': 'Harga dekat High 52-W (dlm 25%)',
+            'C8': 'RS Rating > 1.0 (Outperform IHSG)'
         }
+        
+        self.index_data = None
+        self.min_turnover = min_turnover
+        self.setup_logging(log_level)
+        
+        # Statistik
         self.total_saham = 0
         self.saham_lolos = 0
         self.saham_error = []
         self.saham_ok = []
-        self.saham_kurang_data = []
-        
-        # Statistik
         self.request_count = 0
-        self.last_request_time = None
-        self.error_count = 0
-        self.consecutive_errors = 0
         
-    def smart_delay(self, is_error=False):
-        """Delay 1-2 detik untuk 220 saham"""
-        self.request_count += 1
+    def setup_logging(self, level):
+        """Setup logging ke file dan console"""
+        logging.basicConfig(
+            level=level,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler('screener.log'),
+                logging.StreamHandler(sys.stdout)
+            ]
+        )
+        self.logger = logging.getLogger(__name__)
+        self.logger.info("="*80)
+        self.logger.info("MINERVINI PRO SCREENER INITIALIZED")
+        self.logger.info("="*80)
         
-        if is_error or self.consecutive_errors > 0:
-            print(f"  ⚠ Error delay: 5s")
-            time.sleep(5)
-            self.consecutive_errors = max(0, self.consecutive_errors - 1)
-            return
+    # ============================================
+    # FUNGSI FETCH DATA IHSG (DENGAN CACHING)
+    # ============================================
+    def fetch_ihsg_data(self, force_refresh=False):
+        """
+        Mengambil data IHSG sebagai benchmark RS Rating
+        Dengan caching untuk menghindari fetch berulang
+        """
+        if self.index_data is not None and not force_refresh:
+            self.logger.info("📊 Menggunakan data IHSG dari cache")
+            return self.index_data
         
-        base_delay = random.uniform(1.0, 2.0)
+        self.logger.info("📊 Mengambil data benchmark IHSG (^JKSE)...")
+        max_retries = 3
         
-        if self.request_count % 20 == 0:
-            long_delay = random.uniform(3.0, 5.0)
-            print(f"  💤 Bulk delay: {long_delay:.1f}s (after {self.request_count} requests)")
-            time.sleep(long_delay)
-        else:
-            print(f"  💤 Delay: {base_delay:.1f}s")
-            time.sleep(base_delay)
+        for attempt in range(max_retries):
+            try:
+                # Gunakan session dengan impersonate
+                session = requests.Session()
+                session.impersonate = "chrome120"
+                
+                self.index_data = yf.download(
+                    "^JKSE", 
+                    period="2y", 
+                    interval="1d", 
+                    progress=False,
+                    session=session
+                )
+                
+                if self.index_data.empty:
+                    raise ValueError("Data IHSG kosong")
+                    
+                self.logger.info(f"✅ Data IHSG berhasil dimuat ({len(self.index_data)} data points)")
+                return self.index_data
+                
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    wait = 5 * (attempt + 1)
+                    self.logger.warning(f"⚠️ Gagal, coba lagi dalam {wait} detik...")
+                    time.sleep(wait)
+                else:
+                    self.logger.error(f"❌ Gagal mengambil data IHSG: {e}")
+                    return None
+        return None
+
+    # ============================================
+    # FUNGSI RS RATING (AKURAT vs IHSG)
+    # ============================================
+    def calculate_rs_rating(self, stock_df):
+        """
+        RS Rating dengan multiple timeframe (12m, 6m, 3m, 1m)
+        Return: (rs_ratio, rs_score_0_100)
+        """
+        if self.index_data is None or stock_df is None or len(stock_df) < 252:
+            return 0, 0
         
-        self.last_request_time = datetime.now()
-    
-    def get_stock_data(self, ticker, period='1y'):
-        """Ambil data saham - TANPA nambah .JK jika sudah ada"""
-        max_retries = 2
+        try:
+            # Sinkronisasi tanggal (ambil data yang sama)
+            common_dates = stock_df.index.intersection(self.index_data.index)
+            if len(common_dates) < 200:
+                self.logger.debug(f"Data tidak sinkron: hanya {len(common_dates)} tanggal")
+                return 0, 0
+            
+            s_price = stock_df.loc[common_dates, 'Close']
+            i_price = self.index_data.loc[common_dates, 'Close']
+            
+            # Periode: 1, 3, 6, 12 bulan (dalam hari trading)
+            periods = [21, 63, 126, 252]
+            weights = [0.1, 0.2, 0.3, 0.4]  # Bobot lebih besar untuk jangka panjang
+            
+            stock_perf = 0
+            index_perf = 0
+            
+            for period, weight in zip(periods, weights):
+                if len(s_price) > period:
+                    s_ret = (s_price.iloc[-1] / s_price.iloc[-period] - 1)
+                    i_ret = (i_price.iloc[-1] / i_price.iloc[-period] - 1)
+                    
+                    stock_perf += (1 + s_ret) * weight
+                    index_perf += (1 + i_ret) * weight
+            
+            rs_ratio = stock_perf / index_perf if index_perf > 0 else 1
+            
+            # Konversi ke skala 0-100 (opsional, untuk sorting)
+            # Asumsi rs_ratio normal antara 0.5 - 2.0
+            rs_score = min(99, max(1, (rs_ratio - 0.5) * 100))
+            
+            return round(rs_ratio, 3), round(rs_score, 1)
+            
+        except Exception as e:
+            self.logger.debug(f"Error RS Rating: {e}")
+            return 0, 0
+
+    # ============================================
+    # FUNGSI VCP SCORE (KOMPREHENSIF)
+    # ============================================
+    def calculate_vcp_score(self, df):
+        """
+        VCP Score (0-100) berdasarkan:
+        - Volatility contraction (bobot 60)
+        - Volume dry-up (bobot 30)
+        - Price position (bobot 10)
+        """
+        if len(df) < 150:
+            return 0, 0, 0
         
-        # Bersihkan ticker dari komentar
+        try:
+            # 1. Volatility Tightness (bobot 60)
+            # Gunakan multiple windows untuk deteksi lebih akurat
+            windows = [10, 20, 30, 40]
+            tight_scores = []
+            
+            for w in windows:
+                if len(df) < w + 60:
+                    continue
+                    
+                recent_range = (df['High'].iloc[-w:] - df['Low'].iloc[-w:]).mean()
+                hist_range = (df['High'].iloc[-(w+60):-w] - df['Low'].iloc[-(w+60):-w]).mean()
+                
+                if hist_range > 0:
+                    ratio = recent_range / hist_range
+                    score = max(0, (1 - ratio) * 100)
+                    tight_scores.append(min(100, score))
+            
+            if tight_scores:
+                tightness = (sum(tight_scores) / len(tight_scores)) * 0.6
+            else:
+                tightness = 0
+            
+            # 2. Volume Dry-up (bobot 30)
+            recent_vol = df['Volume'].iloc[-10:].mean()
+            hist_vol = df['Volume'].iloc[-60:-10].mean()
+            
+            vol_dryup = 0
+            if hist_vol > 0:
+                vol_ratio = recent_vol / hist_vol
+                vol_dryup = max(0, (1 - vol_ratio) * 100) * 0.3
+                vol_dryup = min(30, vol_dryup)
+            
+            # 3. Price Position (bobot 10) - Harga di dekat 52-week high
+            price = df['Close'].iloc[-1]
+            high_52 = df['High'].tail(252).max()
+            if high_52 > 0:
+                price_position = (price / high_52) * 10
+                price_position = min(10, price_position)
+            else:
+                price_position = 0
+            
+            total = tightness + vol_dryup + price_position
+            return round(total, 1), round(tightness, 1), round(vol_dryup, 1)
+            
+        except Exception as e:
+            self.logger.debug(f"Error VCP Score: {e}")
+            return 0, 0, 0
+
+    # ============================================
+    # FUNGSI CEK LIKUIDITAS
+    # ============================================
+    def check_liquidity(self, df):
+        """Cek apakah saham cukup likuid (minimal turnover tertentu)"""
+        try:
+            avg_turnover = (df['Close'] * df['Volume']).tail(20).mean()
+            is_liquid = avg_turnover >= self.min_turnover
+            return is_liquid, avg_turnover
+        except Exception as e:
+            self.logger.debug(f"Error cek likuiditas: {e}")
+            return False, 0
+
+    # ============================================
+    # FUNGSI AMBIL DATA SAHAM (DENGAN RETRY)
+    # ============================================
+    def get_stock_data(self, ticker, period='2y'):
+        """Ambil data saham dengan retry mechanism"""
+        max_retries = 3
+        
+        # Bersihkan ticker
         if '#' in ticker:
             ticker = ticker.split('#')[0].strip()
         
         original_ticker = ticker
         
-        # Format yang akan dicoba - JANGAN nambah .JK jika sudah ada
-        ticker_formats = []
-        
+        # Format yang akan dicoba
         if ticker.endswith('.JK'):
-            # Jika sudah pakai .JK, gunakan apa adanya
-            ticker_formats = [
-                ticker,                    # ADRO.JK
-                ticker.replace('.JK', ''),  # ADRO (tanpa .JK)
-                f"JK:{ticker.replace('.JK', '')}"  # JK:ADRO
-            ]
+            symbol = ticker
+            display_name = ticker.replace('.JK', '')
         else:
-            # Jika belum pakai .JK, tambahkan
-            ticker_formats = [
-                f"{ticker}.JK",  # ADRO.JK
-                ticker,            # ADRO
-                f"JK:{ticker}"     # JK:ADRO
-            ]
-        
-        # Hapus duplikat
-        ticker_formats = list(dict.fromkeys(ticker_formats))
-        
-        periods_to_try = ['2y', '1y']
+            symbol = f"{ticker}.JK"
+            display_name = ticker
         
         for attempt in range(max_retries):
-            for ticker_format in ticker_formats:
-                for period_try in periods_to_try:
-                    try:
-                        session = requests.Session()
-                        session.impersonate = "chrome120"
-                        
-                        session.headers.update({
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                        })
-                        
-                        stock = yf.Ticker(ticker_format, session=session)
-                        df = stock.history(period=period_try, timeout=10)
-                        
-                        if df is not None and not df.empty:
-                            print(f"    ✅ {ticker_format} = {len(df)} data points")
-                            self.consecutive_errors = 0
-                            
-                            if len(df) >= 200:
-                                self.saham_ok.append(original_ticker)
-                                return df
-                            else:
-                                print(f"    ⚠ Data {len(df)}/200")
-                                if len(df) > 150:
-                                    self.saham_kurang_data.append(original_ticker)
-                                    return df
-                                return None
-                                
-                    except Exception as e:
-                        print(f"    Debug: {ticker_format} error: {str(e)[:30]}...")
-                        continue
-                    
-                    time.sleep(0.2)
-            
-            if attempt == 0:
-                # Coba format alternatif di percobaan kedua
-                if ticker.endswith('.JK'):
-                    ticker_formats = [f"JK:{ticker.replace('.JK', '')}"]
+            try:
+                # Gunakan session dengan impersonate
+                session = requests.Session()
+                session.impersonate = "chrome120"
+                
+                stock = yf.Ticker(symbol, session=session)
+                df = stock.history(period=period, timeout=15)
+                
+                if df is not None and not df.empty:
+                    if len(df) >= 200:
+                        return df, display_name
+                    else:
+                        self.logger.debug(f"⚠️ {display_name}: Data {len(df)}/200 hari")
+                        return None, display_name
                 else:
-                    ticker_formats = [f"JK:{ticker}"]
-                time.sleep(2)
+                    return None, display_name
+                    
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    wait = 3 * (attempt + 1)
+                    self.logger.debug(f"⏳ {display_name}: Retry {attempt+1} dalam {wait}s")
+                    time.sleep(wait)
+                else:
+                    self.logger.debug(f"❌ {display_name}: Gagal total - {str(e)[:50]}")
+                    return None, display_name
         
-        self.saham_error.append(original_ticker)
-        self.consecutive_errors += 1
-        return None
-    
-    def calculate_relative_strength(self, df):
-        """RS Rating sederhana (tanpa IHSG)"""
-        try:
-            if len(df) < 60:
-                return 50
-            
-            # Hitung return 60 hari
-            returns = df['Close'].pct_change(60).iloc[-1] * 100
-            
-            if pd.notna(returns):
-                # Konversi ke skala 1-99
-                rs = min(99, max(1, returns + 50))
-                return rs
-            return 50
-        except:
-            return 50
+        return None, display_name
 
-    # ==================== VCP SCORING ====================
-    def calculate_vcp_score(self, df):
+    # ============================================
+    # FUNGSI UTAMA SCREENING
+    # ============================================
+    def screen(self, tickers):
         """
-        Menghitung VCP Score (0-100) berdasarkan kontraksi volatilitas dan volume dry-up.
-        Skor semakin tinggi menandakan pola VCP semakin ketat.
-        """
-        if df is None or len(df) < 120:
-            return 0.0, 0.0, 0.0
-
-        # --- Tightness Score (bobot 70) ---
-        windows = [20, 30, 40, 60]
-        tight_scores = []
-        for w in windows:
-            if len(df) < w + 60:
-                continue
-            # Rentang harga (high-low) rata-rata periode terakhir
-            recent_range = (df['High'].iloc[-w:] - df['Low'].iloc[-w:]).mean()
-            # Rentang harga periode historis (sebelumnya, 60 hari)
-            hist_range = (df['High'].iloc[-(w+60):-w] - df['Low'].iloc[-(w+60):-w]).mean()
-            if hist_range > 0:
-                ratio = recent_range / hist_range
-                # Semakin kecil ratio (range menyempit) -> skor tinggi
-                score = max(0, (1 - ratio) * 100)
-                tight_scores.append(min(100, score))
-        if tight_scores:
-            tight_avg = sum(tight_scores) / len(tight_scores)
-            tight_score = tight_avg * 0.7  # bobot 70%
-        else:
-            tight_score = 0
-
-        # --- Volume Dry-Up Score (bobot 30) ---
-        if len(df) >= 60:
-            recent_vol = df['Volume'].iloc[-10:].mean()
-            hist_vol = df['Volume'].iloc[-60:-10].mean()
-            if hist_vol > 0:
-                vol_ratio = recent_vol / hist_vol
-                # Semakin kecil vol_ratio (volume mengering) -> skor tinggi
-                vol_score = max(0, (1 - vol_ratio) * 100) * 0.3
-                vol_score = min(30, vol_score)
-            else:
-                vol_score = 0
-        else:
-            vol_score = 0
-
-        total = round(tight_score + vol_score, 1)
-        return total, round(tight_score, 1), round(vol_score, 1)
-    # ===================================================
-
-    def check_criteria(self, df):
-        """Cek 8 kriteria Minervini"""
-        if df is None or len(df) < 150:
-            return {}
+        Fungsi utama untuk screening saham
         
-        try:
-            # Hitung MA
-            for period in [20, 50, 150, 200]:
-                if len(df) >= period:
-                    df[f'MA{period}'] = df['Close'].rolling(window=period).mean()
+        Args:
+            tickers: List kode saham (bisa dengan atau tanpa .JK)
             
-            latest = df.iloc[-1]
-            
-            # 52-week range
-            year_high = df['High'].tail(252).max()
-            year_low = df['Low'].tail(252).min()
-            
-            current_price = latest['Close']
-            
-            # MA200 trend
-            ma200_up = False
-            if 'MA200' in df.columns and len(df) >= 222:
-                ma200_up = df['MA200'].iloc[-1] > df['MA200'].iloc[-22]
-            
-            # RS Rating
-            rs = self.calculate_relative_strength(df)
-            
-            # Hitung dari low dan high
-            pct_from_low = (current_price / year_low - 1) * 100 if year_low > 0 else 0
-            pct_from_high = (1 - current_price / year_high) * 100 if year_high > 0 else 0
-            
-            results = {
-                'C1': ('MA150' in df.columns and 'MA200' in df.columns and 
-                       current_price > latest['MA150'] and current_price > latest['MA200']),
-                'C2': ('MA150' in df.columns and 'MA200' in df.columns and 
-                       latest['MA150'] > latest['MA200']),
-                'C3': ma200_up,
-                'C4': ('MA50' in df.columns and 'MA150' in df.columns and 'MA200' in df.columns and
-                       latest['MA50'] > latest['MA150'] and latest['MA50'] > latest['MA200']),
-                'C5': ('MA50' in df.columns and current_price > latest['MA50']),
-                'C6': pct_from_low > 30,
-                'C7': pct_from_high <= 25,
-                'C8': rs > 70,
-                '_price': current_price,
-                '_rs': rs,
-                '_from_low': pct_from_low,
-                '_from_high': pct_from_high
-            }
-            
-            return results
-            
-        except Exception as e:
-            return {}
-    
-    def screen_stocks(self, tickers):
-        """Main screening function"""
-        results = []
+        Returns:
+            DataFrame dengan hasil screening
+        """
+        self.logger.info(f"\n{'='*80}")
+        self.logger.info(f"MINERVINI PRO SCREENER - {len(tickers)} SAHAM SYARIAH")
+        self.logger.info(f"{'='*80}")
+        
+        # Reset statistik
         self.total_saham = len(tickers)
+        self.saham_lolos = 0
         self.saham_error = []
         self.saham_ok = []
-        self.saham_kurang_data = []
         self.request_count = 0
+        results = []
         
-        print(f"\n{'='*70}")
-        print(f"⚡ MINERVINI SCREENER - SAHAM SYARIAH + VCP SCORING")
-        print(f"{'='*70}")
-        print(f"Total saham: {self.total_saham}")
-        print(f"Target waktu: {self.total_saham * 1.5 / 60:.1f} menit")
-        print(f"{'='*70}\n")
-        
-        # Tampilkan kriteria
-        print("📋 8 KRITERIA MINERVINI:")
-        for k, v in self.criteria.items():
-            print(f"   {k}: {v}")
-        print()
+        # Ambil data IHSG untuk benchmark
+        self.fetch_ihsg_data()
         
         start_time = time.time()
         success_count = 0
         
         for i, ticker in enumerate(tickers, 1):
+            # Hitung progress
             elapsed = time.time() - start_time
-            avg_time = elapsed / i if i > 0 else 0
-            remaining = (self.total_saham - i) * avg_time
+            if success_count > 0:
+                avg_time = elapsed / success_count
+                remaining = (len(tickers) - i) * avg_time
+            else:
+                remaining = 0
             
-            progress = (i / self.total_saham) * 100
-            print(f"\n[{i}/{self.total_saham}] ({progress:.1f}%) {ticker}")
-            print(f"   ⏱️  Sisa: {int(remaining//60)}m {int(remaining%60)}s | Rata: {avg_time:.1f}s/saham")
+            progress = (i / len(tickers)) * 100
+            print(f"[{i}/{len(tickers)}] ({progress:.1f}%) {ticker} | "
+                  f"Sisa: {int(remaining//60)}m {int(remaining%60)}s")
             
-            df = self.get_stock_data(ticker)
+            # Ambil data saham
+            df, display_name = self.get_stock_data(ticker)
             
             if df is not None:
                 success_count += 1
-                criteria = self.check_criteria(df)
+                self.saham_ok.append(display_name)
                 
-                if criteria:
-                    total_met = sum([v for k, v in criteria.items() if k.startswith('C')])
-                    
-                    if total_met >= 7:
-                        price = criteria.get('_price', 0)
-                        # FORMAT HARGA DETAIL
-                        price_str = f"Rp {price:,.0f}".replace(',', '.')
-                        
-                        rs = criteria.get('_rs', 0)
-                        from_low = criteria.get('_from_low', 0)
-                        from_high = criteria.get('_from_high', 0)
-                        
-                        # Hitung VCP Score
-                        vcp_total, vcp_tight, vcp_vol = self.calculate_vcp_score(df)
-                        
-                        # Ticker tanpa .JK untuk tampilan
-                        display_ticker = ticker.replace('.JK', '') if ticker.endswith('.JK') else ticker
-                        
-                        result = {
-                            'Ticker': display_ticker,
-                            'Data': f"{len(df)}hr",
-                            'Skor': f"{total_met}/8",
-                            'Status': '8/8' if total_met == 8 else '7/8',
-                            'Harga': price_str,
-                            'RS': f"{rs:.0f}",
-                            'VCP': vcp_total,          # VCP Score
-                            'Low': f"{from_low:.0f}%",
-                            'High': f"{from_high:.0f}%",
-                            'C1': '✓' if criteria.get('C1') else '✗',
-                            'C2': '✓' if criteria.get('C2') else '✗',
-                            'C3': '✓' if criteria.get('C3') else '✗',
-                            'C4': '✓' if criteria.get('C4') else '✗',
-                            'C5': '✓' if criteria.get('C5') else '✗',
-                            'C6': '✓' if criteria.get('C6') else '✗',
-                            'C7': '✓' if criteria.get('C7') else '✗',
-                            'C8': '✓' if criteria.get('C8') else '✗',
-                        }
-                        results.append(result)
-                        print(f"  ✅ LOLOS! ({total_met}/8) RS:{rs:.0f} VCP:{vcp_total} Harga:{price_str}")
-                    else:
-                        print(f"  ❌ {total_met}/8")
+                # Cek likuiditas
+                is_liquid, avg_turnover = self.check_liquidity(df)
+                if not is_liquid:
+                    print(f"   ⚠ Likuiditas rendah: Rp {avg_turnover/1e6:.1f}M < target")
+                    continue
+                
+                # Hitung indikator teknikal
+                price = df['Close'].iloc[-1]
+                ma50 = df['Close'].rolling(50).mean().iloc[-1]
+                ma150 = df['Close'].rolling(150).mean().iloc[-1]
+                ma200 = df['Close'].rolling(200).mean().iloc[-1]
+                
+                if len(df) >= 222:
+                    ma200_22 = df['Close'].rolling(200).mean().iloc[-22]
+                else:
+                    ma200_22 = ma200
+                
+                low_52 = df['Low'].tail(252).min()
+                high_52 = df['High'].tail(252).max()
+                
+                # Hitung RS Rating dan VCP Score
+                rs_ratio, rs_score = self.calculate_rs_rating(df)
+                vcp_total, vcp_tight, vcp_vol = self.calculate_vcp_score(df)
+                
+                # Evaluasi 8 kriteria
+                c1 = price > ma150 and price > ma200
+                c2 = ma150 > ma200
+                c3 = ma200 > ma200_22 if len(df) >= 222 else False
+                c4 = ma50 > ma150 and ma50 > ma200
+                c5 = price > ma50
+                c6 = price > (low_52 * 1.30) if low_52 > 0 else False
+                c7 = price > (high_52 * 0.75) if high_52 > 0 else False
+                c8 = rs_ratio > 1.0
+                
+                conditions = [c1, c2, c3, c4, c5, c6, c7, c8]
+                score = sum(conditions)
+                
+                # Hitung jarak dari low dan high
+                pct_from_low = ((price / low_52) - 1) * 100 if low_52 > 0 else 0
+                pct_from_high = (1 - (price / high_52)) * 100 if high_52 > 0 else 0
+                
+                # Simpan jika minimal 7 kriteria terpenuhi
+                if score >= 7:
+                    result = {
+                        'Ticker': display_name,
+                        'Harga': f"Rp {int(price):,}".replace(',', '.'),
+                        'Skor': f"{score}/8",
+                        'Status': '8/8' if score == 8 else '7/8',
+                        'RS_Ratio': rs_ratio,
+                        'RS_Score': rs_score,
+                        'VCP': vcp_total,
+                        'Turnover_M': f"{avg_turnover/1e6:.1f}M",
+                        'Low': f"{pct_from_low:.1f}%",
+                        'High': f"{pct_from_high:.1f}%",
+                        'C1': '✓' if c1 else '✗',
+                        'C2': '✓' if c2 else '✗',
+                        'C3': '✓' if c3 else '✗',
+                        'C4': '✓' if c4 else '✗',
+                        'C5': '✓' if c5 else '✗',
+                        'C6': '✓' if c6 else '✗',
+                        'C7': '✓' if c7 else '✗',
+                        'C8': '✓' if c8 else '✗',
+                    }
+                    results.append(result)
+                    print(f"   ✅ LOLOS! ({score}/8) RS:{rs_ratio:.2f} VCP:{vcp_total}")
+                else:
+                    print(f"   ❌ Tidak lolos ({score}/8)")
             
-            self.smart_delay(is_error=(df is None))
+            else:
+                self.saham_error.append(display_name)
+                print(f"   ❌ Gagal mengambil data")
+            
+            # Delay dinamis untuk menghindari rate limit
+            delay = random.uniform(0.8, 1.2)
+            if success_count > 0 and success_count % 10 == 0:
+                print(f"   💤 Istirahat 3 detik...")
+                delay += 3
+            time.sleep(delay)
         
-        # Hasil
-        total_time = time.time() - start_time
-        print("\n" + "=" * 70)
-        print("📊 HASIL SCREENING")
-        print("=" * 70)
-        print(f"Total saham    : {self.total_saham}")
-        print(f"Berhasil       : {success_count}")
-        print(f"Error          : {len(self.saham_error)}")
-        print(f"Lolos          : {len(results)}")
-        print(f"Waktu total    : {int(total_time//60)}m {int(total_time%60)}s")
-        print(f"Rata-rata      : {total_time/self.total_saham:.1f}s/saham")
-        
+        # Buat DataFrame hasil
         if results:
             df_results = pd.DataFrame(results)
-            # Urutkan berdasarkan Status (8/8 dulu), lalu VCP Score tertinggi
-            df_results = df_results.sort_values(['Status', 'VCP'], ascending=[False, False])
-            return df_results
+            # Urutkan berdasarkan skor, lalu RS, lalu VCP
+            df_results = df_results.sort_values(
+                ['Skor', 'RS_Score', 'VCP'], 
+                ascending=[False, False, False]
+            )
+            self.saham_lolos = len(df_results)
+        else:
+            df_results = pd.DataFrame()
+            self.saham_lolos = 0
         
-        return pd.DataFrame()
+        # Tampilkan ringkasan akhir
+        total_time = time.time() - start_time
+        self.logger.info(f"\n{'='*80}")
+        self.logger.info("📊 RINGKASAN SCREENING")
+        self.logger.info(f"{'='*80}")
+        self.logger.info(f"Total saham: {self.total_saham}")
+        self.logger.info(f"Berhasil diambil: {success_count}")
+        self.logger.info(f"Error/Delisted: {len(self.saham_error)}")
+        self.logger.info(f"Lolos screening: {self.saham_lolos}")
+        self.logger.info(f"Waktu total: {int(total_time//60)}m {int(total_time%60)}s")
+        
+        if self.saham_lolos > 0:
+            count_8 = len(df_results[df_results['Status'] == '8/8'])
+            count_7 = len(df_results[df_results['Status'] == '7/8'])
+            self.logger.info(f"   - 8/8: {count_8}")
+            self.logger.info(f"   - 7/8: {count_7}")
+            
+            print("\n📋 TOP SAHAM:")
+            print(df_results[['Ticker', 'Status', 'Harga', 'RS_Ratio', 'VCP']].head(10).to_string(index=False))
+        
+        return df_results
+
+    # ============================================
+    # FUNGSI KONVERSI KE FORMAT GOOGLE SHEETS
+    # ============================================
+    def to_sheets_format(self, results_df):
+        """
+        Konversi hasil screening ke format yang siap dikirim ke Google Sheets
+        """
+        if results_df is None or results_df.empty:
+            return []
+        
+        formatted = []
+        for _, row in results_df.iterrows():
+            formatted.append({
+                'Ticker': row['Ticker'],
+                'Status': row['Status'],
+                'Harga': row['Harga'],
+                'VCP': row['VCP'],
+                'RS': row['RS_Ratio']
+            })
+        return formatted
+
+
+# ============================================
+# FUNGSI MAIN UNTUK TESTING
+# ============================================
+def main():
+    """Fungsi utama untuk testing"""
+    
+    # Daftar saham syariah untuk testing
+    tickers = [
+        "ADRO", "ANTM", "ASII", "BBCA", "BBNI", "BBRI", "BMRI", "BRIS",
+        "CPIN", "ERAA", "EXCL", "GOTO", "HMSP", "ICBP", "INCO", "INDF",
+        "INKP", "INTP", "ISAT", "ITMG", "JPFA", "JSMR", "KLBF", "MAPI",
+        "MDKA", "MIKA", "MTDL", "MYOR", "PGAS", "PTBA", "PTPP", "PWON",
+        "SIDO", "SILO", "SMGR", "TBIG", "TKIM", "TLKM", "TOWR", "UNTR",
+        "UNVR", "WIKA", "WSKT"
+    ]
+    
+    # Inisialisasi screener
+    screener = MinerviniScreenerPro(min_turnover=500_000_000)
+    
+    # Jalankan screening
+    results = screener.screen(tickers)
+    
+    # Simpan ke CSV
+    if not results.empty:
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"minervini_results_{timestamp}.csv"
+        results.to_csv(filename, index=False)
+        print(f"\n💾 Hasil disimpan ke: {filename}")
+        
+        # Konversi ke format sheets
+        sheets_format = screener.to_sheets_format(results)
+        print(f"\n📊 Siap dikirim ke Google Sheets: {len(sheets_format)} data")
+
+
+# ============================================
+# ENTRY POINT
+# ============================================
+if __name__ == "__main__":
+    main()
