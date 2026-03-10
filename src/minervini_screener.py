@@ -1,6 +1,6 @@
 # ============================================
-# MINERVINI PRO SCREENER - MULTITHREADING VERSION
-# Versi 5.3 - FIX ERROR IMPORT
+# MINERVINI PRO SCREENER - HYBRID RS VERSION
+# Versi 5.4 - RS Stabil (Tidak Bergantung IHSG)
 # ============================================
 
 import yfinance as yf
@@ -17,13 +17,10 @@ from threading import Lock
 import os
 import pytz
 
-# ============================================
-# CLASS UTAMA - NAMA HARUS SESUAI: MinerviniScreenerPro
-# ============================================
 class MinerviniScreenerPro:
     """
     Screener saham syariah Indonesia dengan 8 kriteria Minervini + VCP Scoring
-    dan Relative Strength vs IHSG yang akurat. Versi Multithreading.
+    RS Rating menggunakan hybrid method (IHSG jika ada, fallback ke return absolut)
     """
     
     def __init__(self, min_turnover=500_000_000, max_workers=20, log_level=logging.INFO):
@@ -43,7 +40,6 @@ class MinerviniScreenerPro:
         
         self.index_data = None
         self.index_fetched = False
-        self.benchmark_name = None
         self.min_turnover = min_turnover
         self.max_workers = max_workers
         self.setup_logging(log_level)
@@ -54,6 +50,7 @@ class MinerviniScreenerPro:
         self.saham_lolos = 0
         self.saham_error = []
         self.saham_ok = []
+        self.saham_kurang_data = []
         self.request_count = 0
         self.results = []
         self.start_time = None
@@ -82,71 +79,139 @@ class MinerviniScreenerPro:
             return df
 
     # ============================================
-    # FUNGSI FETCH BENCHMARK (IHSG atau LQ45)
+    # FUNGSI FETCH IHSG (OPSIONAL, TIDAK WAJIB)
     # ============================================
-    def fetch_benchmark_data(self):
-        """Mengambil data benchmark (prioritas IHSG, fallback LQ45)"""
-        self.logger.info("📊 Mengambil data benchmark...")
+    def fetch_ihsg_data(self):
+        """Mengambil data IHSG - opsional, jika gagal tidak masalah"""
+        try:
+            self.logger.info("📊 Mencoba mengambil data IHSG...")
+            session = requests.Session()
+            session.impersonate = "chrome120"
+            
+            data = yf.download(
+                "^JKSE", 
+                period="1y", 
+                interval="1d", 
+                progress=False,
+                session=session,
+                timeout=15
+            )
+            
+            if data is not None and not data.empty and len(data) >= 100:
+                self.index_data = self.fix_timezone(data)
+                self.index_fetched = True
+                self.logger.info(f"✅ IHSG berhasil dimuat ({len(data)} data)")
+                return True
+        except Exception as e:
+            self.logger.warning(f"⚠️ IHSG gagal, akan gunakan fallback: {str(e)[:50]}")
         
-        # Coba IHSG dulu
-        ihsg_data = self.fetch_single_index("^JKSE", "IHSG")
-        if ihsg_data is not None:
-            self.index_data = ihsg_data
-            self.index_fetched = True
-            self.benchmark_name = "IHSG"
-            self.logger.info(f"✅ Menggunakan IHSG sebagai benchmark ({len(ihsg_data)} data)")
-            return ihsg_data
-        
-        # Jika IHSG gagal, coba LQ45
-        lq45_data = self.fetch_single_index("LQ45.JK", "LQ45")
-        if lq45_data is not None:
-            self.index_data = lq45_data
-            self.index_fetched = True
-            self.benchmark_name = "LQ45"
-            self.logger.info(f"✅ Menggunakan LQ45 sebagai benchmark ({len(lq45_data)} data)")
-            return lq45_data
-        
-        # Jika semua gagal
-        self.logger.error("❌ Gagal mengambil semua data benchmark")
-        return None
+        self.index_fetched = False
+        return False
 
-    def fetch_single_index(self, ticker, name):
-        """Mengambil satu index tertentu"""
-        max_retries = 3
+    # ============================================
+    # FUNGSI RS RATING - HYBRID (STABIL)
+    # ============================================
+    def calculate_relative_strength(self, df):
+        """
+        RS Rating dengan hybrid method:
+        - Jika IHSG tersedia: bandingkan dengan IHSG
+        - Jika tidak: gunakan return absolut (seperti versi lama)
+        """
         
-        for attempt in range(max_retries):
+        # ===== OPSI 1: PAKAI IHSG (JIKA TERSEDIA) =====
+        if self.index_fetched and self.index_data is not None and len(df) >= 60:
             try:
-                self.logger.info(f"   Mencoba {name} ({ticker})...")
-                
-                session = requests.Session()
-                session.impersonate = "chrome120"
-                
-                data = yf.download(
-                    ticker, 
-                    period="1y", 
-                    interval="1d", 
-                    progress=False,
-                    session=session,
-                    timeout=20
-                )
-                
-                if data is not None and not data.empty:
-                    data = self.fix_timezone(data)
-                    if len(data) >= 100:
-                        return data
-                
+                # Sinkronisasi data
+                common_dates = df.index.intersection(self.index_data.index)
+                if len(common_dates) >= 50:
+                    # Return 3 bulan (63 hari)
+                    if len(df) >= 63 and len(self.index_data) >= 63:
+                        stock_ret_3m = (df['Close'].iloc[-1] / df['Close'].iloc[-63] - 1) * 100
+                        ihsg_ret_3m = (self.index_data['Close'].iloc[-1] / self.index_data['Close'].iloc[-63] - 1) * 100
+                        
+                        # Return 1 bulan (21 hari)
+                        stock_ret_1m = (df['Close'].iloc[-1] / df['Close'].iloc[-21] - 1) * 100
+                        ihsg_ret_1m = (self.index_data['Close'].iloc[-1] / self.index_data['Close'].iloc[-21] - 1) * 100
+                        
+                        # Weighted outperformance
+                        outperf = (stock_ret_3m - ihsg_ret_3m) * 0.6 + (stock_ret_1m - ihsg_ret_1m) * 0.4
+                        
+                        # Konversi ke skala 1-99
+                        rs_score = 50 + outperf
+                        rs_score = max(1, min(99, rs_score))
+                        
+                        return rs_score
             except Exception as e:
-                self.logger.warning(f"   ⚠️ {name} percobaan {attempt+1} gagal: {str(e)[:50]}")
-                if attempt < max_retries - 1:
-                    time.sleep(3)
+                self.logger.debug(f"RS IHSG gagal, fallback: {e}")
         
-        return None
+        # ===== OPSI 2: PAKAI RETURN ABSOLUT (VERSI LAMA) =====
+        try:
+            if len(df) < 60:
+                return 50
+            
+            # Return 60 hari (seperti versi lama)
+            returns = df['Close'].pct_change(60).iloc[-1] * 100
+            
+            if pd.notna(returns):
+                # Konversi ke skala 1-99
+                # Asumsi return normal -50% s/d +50%
+                rs = min(99, max(1, returns + 50))
+                return rs
+            return 50
+        except:
+            return 50
+
+    # ============================================
+    # FUNGSI VCP SCORE
+    # ============================================
+    def calculate_vcp_score(self, df):
+        """Menghitung VCP Score (0-100)"""
+        if df is None or len(df) < 120:
+            return 0.0, 0.0, 0.0
+
+        try:
+            # Tightness Score (bobot 70)
+            windows = [20, 30, 40, 60]
+            tight_scores = []
+            for w in windows:
+                if len(df) < w + 60:
+                    continue
+                recent_range = (df['High'].iloc[-w:] - df['Low'].iloc[-w:]).mean()
+                hist_range = (df['High'].iloc[-(w+60):-w] - df['Low'].iloc[-(w+60):-w]).mean()
+                if hist_range > 0:
+                    ratio = recent_range / hist_range
+                    score = max(0, (1 - ratio) * 100)
+                    tight_scores.append(min(100, score))
+            
+            if tight_scores:
+                tight_avg = sum(tight_scores) / len(tight_scores)
+                tight_score = tight_avg * 0.7
+            else:
+                tight_score = 0
+
+            # Volume Dry-Up Score (bobot 30)
+            if len(df) >= 60:
+                recent_vol = df['Volume'].iloc[-10:].mean()
+                hist_vol = df['Volume'].iloc[-60:-10].mean()
+                if hist_vol > 0:
+                    vol_ratio = recent_vol / hist_vol
+                    vol_score = max(0, (1 - vol_ratio) * 100) * 0.3
+                    vol_score = min(30, vol_score)
+                else:
+                    vol_score = 0
+            else:
+                vol_score = 0
+
+            total = round(tight_score + vol_score, 1)
+            return total, round(tight_score, 1), round(vol_score, 1)
+        except:
+            return 0, 0, 0
 
     # ============================================
     # FUNGSI AMBIL DATA SAHAM
     # ============================================
     def get_stock_data(self, ticker):
-        """Ambil data saham"""
+        """Ambil data saham dengan retry"""
         max_retries = 2
         
         # Bersihkan ticker
@@ -166,7 +231,7 @@ class MinerviniScreenerPro:
                 session.impersonate = "chrome120"
                 
                 stock = yf.Ticker(symbol, session=session)
-                df = stock.history(period="1y", timeout=15)
+                df = stock.history(period="1y", timeout=10)
                 
                 if df is not None and not df.empty:
                     df = self.fix_timezone(df)
@@ -191,103 +256,11 @@ class MinerviniScreenerPro:
     def check_liquidity(self, df):
         """Cek likuiditas"""
         try:
-            df = self.fix_timezone(df)
             avg_turnover = (df['Close'] * df['Volume']).tail(20).mean()
             is_liquid = avg_turnover >= 200_000_000
             return is_liquid, avg_turnover
         except:
             return False, 0
-
-    # ============================================
-    # FUNGSI VCP SCORE
-    # ============================================
-    def calculate_vcp_score(self, df):
-        """VCP Score"""
-        if df is None or len(df) < 100:
-            return 0, 0, 0
-        
-        try:
-            df = self.fix_timezone(df)
-            
-            windows = [10, 20, 30]
-            tight_scores = []
-            
-            for w in windows:
-                if len(df) < w + 50:
-                    continue
-                    
-                recent_range = (df['High'].iloc[-w:] - df['Low'].iloc[-w:]).mean()
-                hist_range = (df['High'].iloc[-(w+50):-w] - df['Low'].iloc[-(w+50):-w]).mean()
-                
-                if hist_range > 0:
-                    ratio = recent_range / hist_range
-                    score = max(0, (1 - ratio) * 100)
-                    tight_scores.append(min(100, score))
-            
-            tightness = (sum(tight_scores) / len(tight_scores) * 0.6) if tight_scores else 0
-            
-            recent_vol = df['Volume'].iloc[-10:].mean()
-            hist_vol = df['Volume'].iloc[-50:-10].mean()
-            
-            vol_dryup = 0
-            if hist_vol > 0:
-                vol_ratio = recent_vol / hist_vol
-                vol_dryup = max(0, (1 - vol_ratio) * 100) * 0.3
-                vol_dryup = min(30, vol_dryup)
-            
-            total = tightness + vol_dryup
-            return round(total, 1), round(tightness, 1), round(vol_dryup, 1)
-            
-        except Exception as e:
-            return 0, 0, 0
-
-    # ============================================
-    # FUNGSI RS RATING - DENGAN BENCHMARK
-    # ============================================
-    def calculate_rs_rating(self, stock_df):
-        """
-        RS Rating - Membandingkan dengan benchmark (IHSG/LQ45)
-        """
-        if not self.index_fetched or self.index_data is None:
-            return None, None
-        
-        if stock_df is None or len(stock_df) < 100:
-            return None, None
-        
-        try:
-            # Fix timezone
-            stock_df = self.fix_timezone(stock_df)
-            index_df = self.fix_timezone(self.index_data)
-            
-            # Ambil data 6 bulan terakhir
-            period = min(180, len(stock_df), len(index_df))
-            
-            if period < 60:
-                return None, None
-            
-            # Sampling untuk menyamakan panjang data
-            stock_sampled = stock_df['Close'].iloc[-period:].values
-            index_sampled = index_df['Close'].iloc[-period:].values
-            
-            # Hitung perubahan dari awal ke akhir
-            stock_change = (stock_sampled[-1] / stock_sampled[0] - 1) * 100
-            index_change = (index_sampled[-1] / index_sampled[0] - 1) * 100
-            
-            # RS Ratio
-            if index_change != 0:
-                rs_ratio = 1.0 + (stock_change - index_change) / 100
-            else:
-                rs_ratio = 1.0 + stock_change / 100
-            
-            rs_ratio = max(0.5, min(2.0, rs_ratio))
-            rs_score = 50 + (rs_ratio - 1.0) * 100
-            rs_score = max(1, min(99, rs_score))
-            
-            return round(rs_ratio, 3), round(rs_score, 1)
-            
-        except Exception as e:
-            self.logger.debug(f"Error RS: {e}")
-            return None, None
 
     # ============================================
     # FUNGSI PROCESS ONE TICKER
@@ -330,15 +303,11 @@ class MinerviniScreenerPro:
             low_52 = df['Low'].tail(200).min()
             high_52 = df['High'].tail(200).max()
             
-            # RS Rating
-            rs_ratio, rs_score = self.calculate_rs_rating(df)
-            
-            # Jika RS gagal, skip
-            if rs_ratio is None or rs_score is None:
-                return None, display_name, f"RS tidak dapat dihitung"
+            # RS Rating - PAKAI HYBRID METHOD
+            rs_score = self.calculate_relative_strength(df)
             
             # VCP Score
-            vcp_total, _, _ = self.calculate_vcp_score(df)
+            vcp_total, vcp_tight, vcp_vol = self.calculate_vcp_score(df)
             
             # Evaluasi kriteria
             c1 = price > ma150 and price > ma200 if not pd.isna(ma150) and not pd.isna(ma200) else False
@@ -362,8 +331,7 @@ class MinerviniScreenerPro:
                 'Harga': f"Rp {int(price):,}".replace(',', '.'),
                 'Skor': f"{score}/8",
                 'Status': '8/8' if score == 8 else '7/8',
-                'RS_Ratio': rs_ratio,
-                'RS_Score': rs_score,
+                'RS': rs_score,
                 'VCP': vcp_total,
                 'Turnover_M': f"{avg_turnover/1e6:.1f}M",
                 'Low': f"{pct_from_low:.1f}%",
@@ -388,14 +356,12 @@ class MinerviniScreenerPro:
             return None, display_name, f"Error: {str(e)[:50]}"
 
     # ============================================
-    # FUNGSI UTAMA SCREENING
+    # FUNGSI SCREEN (MULTITHREADING)
     # ============================================
     def screen(self, tickers):
-        """
-        Fungsi utama screening dengan multithreading
-        """
+        """Fungsi utama screening dengan multithreading"""
         self.logger.info(f"\n{'='*80}")
-        self.logger.info(f"MINERVINI PRO SCREENER v5.3")
+        self.logger.info(f"MINERVINI PRO SCREENER v5.4 - HYBRID RS")
         self.logger.info(f"{'='*80}")
         self.logger.info(f"Total saham: {len(tickers)}")
         self.logger.info(f"Thread workers: {self.max_workers}")
@@ -406,15 +372,13 @@ class MinerviniScreenerPro:
         self.saham_lolos = 0
         self.saham_error = []
         self.saham_ok = []
+        self.saham_kurang_data = []
         self.request_count = 0
         self.results = []
         self.start_time = time.time()
         
-        # Ambil data benchmark
-        benchmark_data = self.fetch_benchmark_data()
-        if benchmark_data is None:
-            self.logger.error("❌ Gagal mendapatkan data benchmark. Screening dibatalkan.")
-            return pd.DataFrame()
+        # Ambil data IHSG (opsional)
+        self.fetch_ihsg_data()
         
         # Filter ticker valid
         valid_tickers = [t for t in tickers if t and not t.startswith('#')]
@@ -423,7 +387,6 @@ class MinerviniScreenerPro:
         success = 0
         failed = 0
         
-        print(f"🚀 Benchmark: {self.benchmark_name}")
         print(f"🚀 Memulai screening dengan {self.max_workers} thread paralel...")
         print(f"{'='*80}")
         
@@ -464,11 +427,11 @@ class MinerviniScreenerPro:
         # Buat DataFrame hasil
         if self.results:
             df_results = pd.DataFrame(self.results)
-            output_cols = ['Ticker', 'Harga', 'Skor', 'Status', 'RS_Ratio', 'RS_Score', 'VCP', 
-                          'Turnover_M', 'Low', 'High', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8']
-            available_cols = [col for col in output_cols if col in df_results.columns]
-            df_results = df_results[available_cols]
-            df_results = df_results.sort_values(['Skor', 'RS_Score'], ascending=[False, False])
+            # Urutkan berdasarkan Status, RS, VCP
+            df_results = df_results.sort_values(
+                ['Status', 'RS', 'VCP'], 
+                ascending=[False, False, False]
+            )
         else:
             df_results = pd.DataFrame()
         
@@ -479,21 +442,9 @@ class MinerviniScreenerPro:
         self.logger.info(f"{'='*80}")
         self.logger.info(f"Total saham: {self.total_saham}")
         self.logger.info(f"Valid format: {len(valid_tickers)}")
-        self.logger.info(f"Benchmark: {self.benchmark_name}")
         self.logger.info(f"Berhasil: {success}")
         self.logger.info(f"Error: {failed}")
         self.logger.info(f"Lolos: {len(self.results)}")
         self.logger.info(f"Waktu: {int(total_time//60)}m {int(total_time%60)}s")
         
         return df_results
-
-
-# ============================================
-# FUNGSI UNTUK TESTING
-# ============================================
-if __name__ == "__main__":
-    # Contoh penggunaan
-    tickers = ["BBCA.JK", "BBRI.JK", "BMRI.JK"]
-    screener = MinerviniScreenerPro()
-    results = screener.screen(tickers)
-    print(results)
