@@ -2,7 +2,7 @@ import os
 import sys
 import logging
 from datetime import datetime
-from src.minervini_screener import MinerviniScreenerPro
+from src.minervini_screener import MinerviniScreenerPro  # ← PASTIKAN NAMA INI
 from src.email_sender import send_email_report
 from src.sheets_sender import send_to_google_sheets
 
@@ -86,7 +86,7 @@ def main():
         
         # Tampilkan hasil singkat
         print("\n📋 DAFTAR SAHAM LOLOS:")
-        display_cols = ['Ticker', 'Status', 'Harga', 'RS_Ratio', 'VCP']
+        display_cols = ['Ticker', 'Status', 'Harga', 'RS_Score', 'VCP']
         if all(col in results_df.columns for col in display_cols):
             print(results_df[display_cols].head(10).to_string(index=False))
         else:
