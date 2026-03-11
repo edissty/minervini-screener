@@ -6,7 +6,7 @@ from datetime import datetime
 
 def send_email_report(df, email_to, email_from, password, criteria, smtp_server='smtp.gmail.com', port=587):
     """
-    Mengirim laporan hasil screening ke email dengan panduan trading ala Minervini + VCP Score
+    Mengirim laporan hasil screening ke email dengan panduan trading ala Minervini + POLA CHART
     """
     print("\n" + "=" * 50)
     print("📧 PROSES KIRIM EMAIL")
@@ -16,7 +16,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
         msg = MIMEMultipart()
         msg['From'] = email_from
         msg['To'] = email_to
-        msg['Subject'] = f"📊 Minervini Screener + VCP - {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        msg['Subject'] = f"📊 Minervini Screener + Chart Patterns - {datetime.now().strftime('%d/%m/%Y %H:%M')}"
         
         if df is not None and not df.empty:
             total_8 = len(df[df['Status'] == '8/8']) if 'Status' in df.columns else 0
@@ -31,8 +31,10 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                 harga = row['Harga']
                 rs = row['RS'] if 'RS' in row else '70'
                 vcp = row['VCP'] if 'VCP' in row else 'N/A'
+                patterns = row['Patterns'] if 'Patterns' in row else 'Tidak ada pola'
+                rr = row['RR_Ratio'] if 'RR_Ratio' in row else '2.86'
                 
-                # Parsing harga yang sudah dalam format "Rp 11.250"
+                # Parsing harga
                 try:
                     harga_clean = str(harga).replace('Rp ', '').replace('.', '')
                     harga_numeric = float(harga_clean)
@@ -40,13 +42,12 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                     entry_price = harga_numeric
                     stop_loss = entry_price * 0.93  # 7% stop loss
                     target1 = entry_price * 1.20
-                    target2 = entry_price * 1.50
+                    target2 = entry_price * 1.40
                     
                     risk = entry_price - stop_loss
                     reward = target1 - entry_price
                     risk_reward = reward / risk if risk > 0 else 0
                     
-                    # Format angka
                     entry_str = f"Rp {entry_price:,.0f}".replace(',', '.')
                     stop_str = f"Rp {stop_loss:,.0f}".replace(',', '.')
                     target1_str = f"Rp {target1:,.0f}".replace(',', '.')
@@ -65,19 +66,19 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                     <table style="width: 100%; border-collapse: collapse;">
                         <tr>
                             <td style="padding: 8px; width: 30%;"><strong>Entry Point:</strong></td>
-                            <td style="padding: 8px;">{entry_str} (harga saat ini atau saat breakout)</td>
+                            <td style="padding: 8px;">{entry_str} (harga saat ini)</td>
                         </tr>
                         <tr>
                             <td style="padding: 8px;"><strong>Stop Loss:</strong></td>
-                            <td style="padding: 8px;">{stop_str} (7-8% di bawah entry) ⚠️</td>
+                            <td style="padding: 8px;">{stop_str} (7% di bawah entry) ⚠️</td>
                         </tr>
                         <tr>
                             <td style="padding: 8px;"><strong>Target 1 (20%):</strong></td>
                             <td style="padding: 8px;">{target1_str} → Jual 30-50% posisi</td>
                         </tr>
                         <tr>
-                            <td style="padding: 8px;"><strong>Target 2 (50%):</strong></td>
-                            <td style="padding: 8px;">{target2_str} → Trailing stop untuk sisa posisi</td>
+                            <td style="padding: 8px;"><strong>Target 2 (40%):</strong></td>
+                            <td style="padding: 8px;">{target2_str} → Trailing stop</td>
                         </tr>
                         <tr>
                             <td style="padding: 8px;"><strong>Risk/Reward:</strong></td>
@@ -85,7 +86,13 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                         </tr>
                         <tr>
                             <td style="padding: 8px;"><strong>VCP Score:</strong></td>
-                            <td style="padding: 8px;">{vcp} / 100 (≥70 sangat baik, siap breakout)</td>
+                            <td style="padding: 8px;">{vcp} / 100 (≥70 sangat baik)</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px;"><strong>Chart Patterns:</strong></td>
+                            <td style="padding: 8px; color: {'green' if patterns != 'Tidak ada pola' else 'gray'};">
+                                {patterns}
+                            </td>
                         </tr>
                     </table>
                 </div>
@@ -97,23 +104,26 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                 <style>
                     body {{ font-family: Arial, sans-serif; margin: 20px; color: #333; }}
                     h2 {{ color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }}
-                    h3 {{ color: #34495e; margin-top: 25px; }}
                     .summary {{ background-color: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 5px solid #3498db; }}
-                    .criteria-box {{ background-color: #f0f7ff; padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #bde0fe; }}
-                    .criteria-list {{ columns: 2; list-style-type: none; padding: 0; }}
-                    .criteria-list li {{ margin: 10px 0; padding: 8px; background-color: white; border-radius: 5px; border-left: 3px solid #3498db; }}
-                    table {{ border-collapse: collapse; width: 100%; margin: 20px 0; font-size: 14px; box-shadow: 0 2px 3px rgba(0,0,0,0.1); }}
-                    th {{ background-color: #3498db; color: white; padding: 12px; text-align: left; }}
+                    .criteria-box {{ background-color: #f0f7ff; padding: 20px; border-radius: 10px; margin: 20px 0; }}
+                    table {{ border-collapse: collapse; width: 100%; margin: 20px 0; }}
+                    th {{ background-color: #3498db; color: white; padding: 12px; }}
                     td {{ border: 1px solid #ddd; padding: 10px; }}
-                    tr:nth-child(even) {{ background-color: #f8f9fa; }}
-                    .badge-8 {{ background-color: #27ae60; color: white; padding: 3px 10px; border-radius: 15px; font-weight: bold; display: inline-block; }}
-                    .badge-7 {{ background-color: #f39c12; color: white; padding: 3px 10px; border-radius: 15px; font-weight: bold; display: inline-block; }}
-                    .rules {{ background-color: #fff3cd; border-left: 5px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 5px; }}
-                    .footer {{ margin-top: 30px; font-size: 12px; color: #7f8c8d; border-top: 1px solid #eee; padding-top: 15px; text-align: center; }}
+                    .badge-8 {{ background-color: #27ae60; color: white; padding: 3px 10px; border-radius: 15px; }}
+                    .badge-7 {{ background-color: #f39c12; color: white; padding: 3px 10px; border-radius: 15px; }}
+                    .pattern-tag {{
+                        display: inline-block;
+                        background-color: #e1f5fe;
+                        color: #0277bd;
+                        padding: 3px 8px;
+                        border-radius: 12px;
+                        font-size: 11px;
+                        margin: 2px;
+                    }}
                 </style>
             </head>
             <body>
-                <h2>📈 MINERVINI STOCK SCREENER + VCP SCORING</h2>
+                <h2>📈 MINERVINI SCREENER + CHART PATTERNS</h2>
                 <p><strong>Waktu Screening:</strong> {datetime.now().strftime('%d-%m-%Y %H:%M:%S')} WIB</p>
                 
                 <div class="summary">
@@ -127,59 +137,39 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                 
                 <div class="criteria-box">
                     <h3>🎯 8 KRITERIA MINERVINI</h3>
-                    <ul class="criteria-list">
+                    <ul style="columns: 2;">
                         <li><strong>C1:</strong> Harga > MA150 & MA200</li>
                         <li><strong>C2:</strong> MA150 > MA200</li>
-                        <li><strong>C3:</strong> MA200 Menanjak (1 bulan terakhir)</li>
+                        <li><strong>C3:</strong> MA200 Menanjak (1 bulan)</li>
                         <li><strong>C4:</strong> MA50 > MA150 & MA200</li>
                         <li><strong>C5:</strong> Harga > MA50</li>
                         <li><strong>C6:</strong> Harga > 30% dari 52-Week Low</li>
                         <li><strong>C7:</strong> Harga dalam 25% dari 52-Week High</li>
                         <li><strong>C8:</strong> Relative Strength > 70</li>
                     </ul>
-                    <p style="margin-top:10px;"><strong>VCP Score:</strong> 0-100, semakin tinggi semakin siap breakout (≥70 sangat baik).</p>
                 </div>
                 
                 <h3>📋 DETAIL SAHAM LOLOS SCREENING</h3>
-                <p><small>✓ = Memenuhi kriteria | ✗ = Tidak memenuhi kriteria</small></p>
+                <p><small>✓ = Memenuhi kriteria | ✗ = Tidak memenuhi</small></p>
                 {table_html}
                 
-                <h3>📊 TRADING PLAN - LANGKAH SELANJUTNYA</h3>
-                <p>Berdasarkan aturan Minervini, berikut panduan entry, stop loss, dan target untuk setiap saham:</p>
-                
+                <h3>📊 TRADING PLAN + CHART PATTERNS</h3>
                 {trading_guide_html}
                 
-                <div class="rules">
-                    <h4>⚠️ 10 Aturan Emas Minervini</h4>
-                    <ol>
-                        <li><strong>Gunakan stop loss SETIAP saat</strong> - jangan pernah entry tanpa stop loss</li>
-                        <li><strong>Tentukan stop loss SEBELUM entry</strong> - bukan setelah membeli</li>
-                        <li><strong>Jangan pernah merata-rata posisi rugi (averaging down)</strong></li>
-                        <li><strong>Jangan biarkan profit besar berubah jadi rugi</strong> - trailing stop</li>
-                        <li><strong>Risiko maksimal 1-2% dari total modal per trade</strong></li>
-                        <li><strong>Jual saat menguat, bukan saat melemah</strong></li>
-                        <li><strong>Fokus pada 4-8 posisi terbaik, jangan terlalu diversifikasi</strong></li>
-                        <li><strong>Lakukan post-analysis rutin</strong> - pelajari pola winner & loser</li>
-                        <li><strong>Konsisten dengan gaya trading - jangan ganti-ganti strategi</strong></li>
-                        <li><strong>Sit-out power</strong> - mampu tidak trading saat tidak ada setup bagus</li>
-                    </ol>
-                </div>
-                
-                <div class="rules" style="background-color: #e8f4fd;">
-                    <h4>📌 Strategi Entry & Exit Minervini + VCP</h4>
+                <div style="margin-top: 20px; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
+                    <h4>📌 Interpretasi Chart Patterns:</h4>
                     <ul>
-                        <li><strong>Entry:</strong> Tunggu breakout dengan volume >150% rata-rata, preferensi VCP Score ≥70</li>
-                        <li><strong>Stop Loss:</strong> 7-8% dari harga entry (WAJIB!)</li>
-                        <li><strong>Take Profit 1 (20-30%):</strong> Jual 30-50% posisi, trailing stop sisanya</li>
-                        <li><strong>Take Profit 2 (50%+):</strong> Gunakan trailing stop (MA10 atau MA20)</li>
-                        <li><strong>Time Stop:</strong> Jika dalam 4-8 minggu tidak progres, exit</li>
+                        <li><span class="pattern-tag">VCP Kuat</span> - Volatility Contraction Pattern, siap breakout</li>
+                        <li><span class="pattern-tag">Support/Resistance</span> - Level harga penting</li>
+                        <li><span class="pattern-tag">Uptrend</span> - Higher highs, higher lows</li>
+                        <li><span class="pattern-tag">Perfect Order</span> - MA20 > MA50 > MA150 > MA200</li>
+                        <li><span class="pattern-tag">Breakout Signal</span> - Harga breakout dengan volume tinggi</li>
                     </ul>
                 </div>
                 
                 <div class="footer">
-                    <p><i>Disclaimer: Screening ini menggunakan data Yahoo Finance. Harga entry dan stop loss adalah estimasi. VCP Score hanya indikator tambahan. Selalu lakukan analisis sendiri.</i></p>
-                    <p><i>Risk Management: Jangan pernah risiko >2% modal per trade. Untuk modal Rp 100jt, risiko maksimal Rp 2jt per trade.</i></p>
-                    <p>Generated by Minervini Screener GitHub Actions • {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}</p>
+                    <p><i>Disclaimer: Analisis pola chart otomatis mungkin tidak 100% akurat. Selalu lakukan verifikasi manual.</i></p>
+                    <p>Generated by Minervini Screener v6.0 • {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}</p>
                 </div>
             </body>
             </html>
@@ -193,24 +183,14 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
             msg.attach(attachment)
             
         else:
-            # Email ketika tidak ada hasil
             body = f"""
             <html>
-            <head>
-                <style>
-                    body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                    h2 {{ color: #2c3e50; }}
-                    .no-results {{ background-color: #f8d7da; padding: 20px; border-radius: 10px; }}
-                </style>
-            </head>
             <body>
-                <h2>📈 MINERVINI STOCK SCREENER</h2>
+                <h2>📈 MINERVINI SCREENER</h2>
                 <p><strong>Waktu Screening:</strong> {datetime.now().strftime('%d-%m-%Y %H:%M:%S')} WIB</p>
-                
-                <div class="no-results">
+                <div style="background-color: #f8d7da; padding: 20px; border-radius: 10px;">
                     <h3>📭 TIDAK ADA HASIL SCREENING</h3>
-                    <p>Tidak ditemukan saham yang memenuhi kriteria 7/8 atau 8/8 pada screening kali ini.</p>
-                    <p>Tetaap patuhi aturan Minervini: "Sit-out power" - lebih baik tidak trading daripada memaksakan entry di saham yang tidak memenuhi kriteria.</p>
+                    <p>Tidak ditemukan saham yang memenuhi kriteria 7/8 atau 8/8.</p>
                 </div>
             </body>
             </html>
@@ -218,14 +198,13 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
         
         msg.attach(MIMEText(body, 'html'))
         
-        # Kirim email
         server = smtplib.SMTP(smtp_server, port)
         server.starttls()
         server.login(email_from, password)
         server.send_message(msg)
         server.quit()
         
-        print("✅ EMAIL DENGAN VCP SCORE BERHASIL DIKIRIM!")
+        print("✅ EMAIL DENGAN CHART PATTERNS BERHASIL DIKIRIM!")
         return True
         
     except Exception as e:
