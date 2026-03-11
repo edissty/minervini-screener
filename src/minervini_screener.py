@@ -1,6 +1,6 @@
 # ============================================
 # MINERVINI PRO SCREENER - DENGAN DETEKSI POLA CHART
-# Versi 6.0 - Support Pattern Detection
+# Versi 6.1 - Fix IHSG Fetch & Pattern Detection
 # ============================================
 
 import yfinance as yf
@@ -39,7 +39,7 @@ class MinerviniScreenerPro:
     + Deteksi Pola Chart Otomatis
     """
     
-    def __init__(self, min_turnover=500_000_000, max_workers=20, log_level=logging.INFO):
+    def __init__(self, min_turnover=300_000_000, max_workers=15, log_level=logging.INFO):
         """
         Inisialisasi screener dengan multithreading
         """
@@ -93,6 +93,38 @@ class MinerviniScreenerPro:
             return df
         except:
             return df
+
+    # ============================================
+    # FUNGSI FETCH IHSG (UNTUK RS RATING)
+    # ============================================
+    def fetch_ihsg_data(self):
+        """Mengambil data IHSG untuk benchmark RS Rating (opsional)"""
+        try:
+            self.logger.info("📊 Mencoba mengambil data IHSG...")
+            session = requests.Session()
+            session.impersonate = "chrome120"
+            
+            data = yf.download(
+                "^JKSE", 
+                period="1y", 
+                interval="1d", 
+                progress=False,
+                session=session,
+                timeout=15
+            )
+            
+            if data is not None and not data.empty and len(data) >= 100:
+                self.index_data = self.fix_timezone(data)
+                self.index_fetched = True
+                self.logger.info(f"✅ IHSG berhasil dimuat ({len(data)} data)")
+                return True
+            else:
+                self.logger.warning("⚠️ Data IHSG kosong atau tidak cukup")
+                return False
+                
+        except Exception as e:
+            self.logger.warning(f"⚠️ Gagal mengambil IHSG: {str(e)[:50]}")
+            return False
 
     # ============================================
     # FUNGSI DETEKSI POLA CHART
@@ -472,10 +504,20 @@ class MinerviniScreenerPro:
         """Cek likuiditas"""
         try:
             avg_turnover = (df['Close'] * df['Volume']).tail(20).mean()
-            is_liquid = avg_turnover >= 200_000_000
+            is_liquid = avg_turnover >= self.min_turnover
             return is_liquid, avg_turnover
         except:
             return False, 0
+
+    def calculate_risk_reward(self, price, stop_loss_pct=7, target_pct=20):
+        """Menghitung risk/reward ratio"""
+        try:
+            risk = price * (stop_loss_pct / 100)
+            reward = price * (target_pct / 100)
+            rr_ratio = reward / risk
+            return round(rr_ratio, 2)
+        except:
+            return 0
 
     # ============================================
     # FUNGSI PROCESS ONE TICKER (DENGAN DETEKSI POLA)
@@ -553,7 +595,7 @@ class MinerviniScreenerPro:
                 'Status': '8/8' if score == 8 else '7/8',
                 'RS': rs_score,
                 'VCP': vcp_total,
-                'Patterns': patterns_str,  # <--- TAMBAHKAN INI
+                'Patterns': patterns_str,
                 'RR_Ratio': rr_ratio,
                 'Turnover_M': f"{avg_turnover/1e6:.1f}M",
                 'Low': f"{pct_from_low:.1f}%",
@@ -577,23 +619,15 @@ class MinerviniScreenerPro:
         except Exception as e:
             return None, display_name, f"Error: {str(e)[:50]}"
 
-    def calculate_risk_reward(self, price, stop_loss_pct=7, target_pct=20):
-        """Menghitung risk/reward ratio"""
-        try:
-            risk = price * (stop_loss_pct / 100)
-            reward = price * (target_pct / 100)
-            rr_ratio = reward / risk
-            return round(rr_ratio, 2)
-        except:
-            return 0
-
     # ============================================
-    # FUNGSI SCREEN (MULTITHREADING)
+    # FUNGSI UTAMA SCREENING
     # ============================================
     def screen(self, tickers):
-        """Fungsi utama screening dengan multithreading"""
+        """
+        Fungsi utama screening dengan multithreading
+        """
         self.logger.info(f"\n{'='*80}")
-        self.logger.info(f"MINERVINI PRO SCREENER v6.0 - DENGAN DETEKSI POLA")
+        self.logger.info(f"MINERVINI PRO SCREENER v6.1 - DENGAN DETEKSI POLA")
         self.logger.info(f"{'='*80}")
         self.logger.info(f"Total saham: {len(tickers)}")
         self.logger.info(f"Thread workers: {self.max_workers}")
@@ -603,6 +637,7 @@ class MinerviniScreenerPro:
             self.logger.info(f"Pattern Library: ⚠️ PatternPy tidak ada (fallback manual)")
         self.logger.info(f"{'='*80}\n")
         
+        # Reset statistik
         self.total_saham = len(tickers)
         self.saham_lolos = 0
         self.saham_error = []
@@ -612,8 +647,10 @@ class MinerviniScreenerPro:
         self.results = []
         self.start_time = time.time()
         
+        # Ambil data IHSG untuk benchmark (opsional)
         self.fetch_ihsg_data()
         
+        # Filter ticker valid
         valid_tickers = [t for t in tickers if t and not t.startswith('#')]
         
         processed = 0
@@ -657,8 +694,10 @@ class MinerviniScreenerPro:
         
         print("\n")
         
+        # Buat DataFrame hasil
         if self.results:
             df_results = pd.DataFrame(self.results)
+            # Urutkan berdasarkan Status, RS, VCP
             df_results = df_results.sort_values(
                 ['Status', 'RS', 'VCP'], 
                 ascending=[False, False, False]
@@ -666,6 +705,7 @@ class MinerviniScreenerPro:
         else:
             df_results = pd.DataFrame()
         
+        # Ringkasan
         total_time = time.time() - self.start_time
         self.logger.info(f"\n{'='*80}")
         self.logger.info("📊 RINGKASAN SCREENING")
@@ -678,3 +718,14 @@ class MinerviniScreenerPro:
         self.logger.info(f"Waktu: {int(total_time//60)}m {int(total_time%60)}s")
         
         return df_results
+
+
+# ============================================
+# FUNGSI UNTUK TESTING
+# ============================================
+if __name__ == "__main__":
+    # Contoh penggunaan
+    tickers = ["BBCA.JK", "BBRI.JK", "BMRI.JK"]
+    screener = MinerviniScreenerPro()
+    results = screener.screen(tickers)
+    print(results)
