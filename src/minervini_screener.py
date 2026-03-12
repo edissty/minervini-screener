@@ -24,6 +24,7 @@ PATTERN_LIB_AVAILABLE = False
 pattern_import_error = ""
 
 try:
+    # Import PatternPy dengan try-except detail
     from patternpy.pivots import find_pivots, find_swing_points
     from patternpy.patterns import (
         detect_channel,
@@ -35,19 +36,77 @@ try:
     )
     from patternpy.support_resistance import calculate_support_resistance
     PATTERN_LIB_AVAILABLE = True
+    print("=" * 60)
     print("✅✅✅ PatternPy BERHASIL diimport")
     print("   - find_pivots tersedia")
     print("   - detect_channel tersedia")
     print("   - detect_double_top_bottom tersedia")
+    print("=" * 60)
 except ImportError as e:
     pattern_import_error = str(e)
+    print("=" * 60)
     print(f"❌❌❌ PatternPy GAGAL diimport: {e}")
-    print("   Install dengan: pip install patternpy")
-    print("   Atau: pip install git+https://github.com/peerchemist/patternpy.git")
+    print("   Penyebab umum:")
+    print("   1. PatternPy belum diinstall: pip install patternpy")
+    print("   2. Ada dependency lain yang kurang")
+    print("   3. Versi Python tidak kompatibel")
+    print("=" * 60)
+    
+    # Buat fallback functions sederhana agar program tetap jalan
+    def find_pivots_fallback(df):
+        df['signal'] = None
+        return df
+    
+    def find_swing_points_fallback(df):
+        df['swing_high'] = None
+        df['swing_low'] = None
+        return df
+    
+    def detect_channel_fallback(df):
+        df['channel_pattern'] = None
+        return df
+    
+    def detect_double_top_bottom_fallback(df):
+        df['double_pattern'] = None
+        return df
+    
+    def detect_triangle_pattern_fallback(df):
+        df['triangle_pattern'] = None
+        return df
+    
+    def detect_wedge_fallback(df):
+        df['wedge_pattern'] = None
+        return df
+    
+    def head_and_shoulders_fallback(df):
+        df['head_shoulder_pattern'] = None
+        return df
+    
+    def detect_multiple_tops_bottoms_fallback(df):
+        df['multiple_top_bottom_pattern'] = None
+        return df
+    
+    def calculate_support_resistance_fallback(df):
+        return df
+    
+    # Assign fallback functions
+    find_pivots = find_pivots_fallback
+    find_swing_points = find_swing_points_fallback
+    detect_channel = detect_channel_fallback
+    detect_double_top_bottom = detect_double_top_bottom_fallback
+    detect_triangle_pattern = detect_triangle_pattern_fallback
+    detect_wedge = detect_wedge_fallback
+    head_and_shoulders = head_and_shoulders_fallback
+    detect_multiple_tops_bottoms = detect_multiple_tops_bottoms_fallback
+    calculate_support_resistance = calculate_support_resistance_fallback
+    
 except Exception as e:
     pattern_import_error = str(e)
+    print("=" * 60)
     print(f"❌❌❌ Error lain saat import PatternPy: {e}")
     traceback.print_exc()
+    print("=" * 60)
+    PATTERN_LIB_AVAILABLE = False
 
 class MinerviniScreenerPro:
     """
@@ -101,10 +160,10 @@ class MinerviniScreenerPro:
         
         # Log status PatternPy
         if PATTERN_LIB_AVAILABLE:
-            self.logger.info("✅ PatternPy tersedia - akan menggunakan deteksi pola")
+            self.logger.info("✅ PatternPy tersedia - akan menggunakan deteksi pola lengkap")
         else:
             self.logger.warning(f"⚠️ PatternPy tidak tersedia: {pattern_import_error}")
-            self.logger.warning("   Deteksi pola terbatas pada support/resistance dan MA alignment")
+            self.logger.warning("   Deteksi pola terbatas pada support/resistance dan MA alignment saja")
 
     def fix_timezone(self, df):
         """Memperbaiki masalah timezone pada dataframe"""
@@ -150,11 +209,11 @@ class MinerviniScreenerPro:
             return False
 
     # ============================================
-    # FUNGSI DETEKSI POLA CHART - SEMUA DARI PATTERNPY
+    # FUNGSI DETEKSI POLA CHART
     # ============================================
     def detect_chart_patterns(self, df):
         """
-        Mendeteksi berbagai pola chart menggunakan PatternPy (SEMUA)
+        Mendeteksi berbagai pola chart menggunakan PatternPy
         Returns: string patterns yang siap digabung
         """
         patterns = []
@@ -166,22 +225,21 @@ class MinerviniScreenerPro:
             # Fix timezone
             df = self.fix_timezone(df)
             
-            # ===== VCP Score (fungsi kita sendiri, tetap dipakai) =====
+            # ===== VCP Score (fungsi kita sendiri) =====
             vcp_total, vcp_tight, vcp_vol = self.calculate_vcp_score(df)
             if vcp_total >= 70:
                 patterns.append(f"VCP Kuat ({vcp_total})")
             elif vcp_total >= 50:
                 patterns.append(f"VCP Sedang ({vcp_total})")
             
-            # ===== SEMUA DETEKSI LAINNYA DARI PATTERNPY =====
+            # ===== DETEKSI DARI PATTERNPY =====
             if PATTERN_LIB_AVAILABLE:
-                self.logger.debug(f"   Mencoba deteksi pola dengan PatternPy...")
+                self.logger.debug(f"   Menggunakan PatternPy untuk deteksi pola...")
                 
-                # 1. Pivot Points - untuk trend (HH/HL/LH/LL)
+                # 1. Pivot Points - untuk trend
                 try:
                     df_pivots = find_pivots(df.copy())
                     if 'signal' in df_pivots.columns:
-                        # Ambil 5 sinyal terakhir
                         last_signals = df_pivots['signal'].tail(10).dropna().tolist()
                         
                         if last_signals:
@@ -192,15 +250,12 @@ class MinerviniScreenerPro:
                             
                             if hh_count + hl_count > lh_count + ll_count:
                                 patterns.append("Uptrend (HH/HL)")
-                                self.logger.debug(f"      ✓ Uptrend terdeteksi (HH:{hh_count}, HL:{hl_count})")
                             elif lh_count + ll_count > hh_count + hl_count:
                                 patterns.append("Downtrend (LH/LL)")
-                                self.logger.debug(f"      ✓ Downtrend terdeteksi (LH:{lh_count}, LL:{ll_count})")
                             else:
                                 patterns.append("Sideways")
-                                self.logger.debug(f"      ✓ Sideways terdeteksi")
                 except Exception as e:
-                    self.logger.debug(f"      ✗ Error find_pivots: {e}")
+                    self.logger.debug(f"   Error find_pivots: {e}")
                 
                 # 2. Swing Points
                 try:
@@ -211,9 +266,8 @@ class MinerviniScreenerPro:
                         
                         if swing_high_count > 0 or swing_low_count > 0:
                             patterns.append(f"Swing Points (H:{swing_high_count}, L:{swing_low_count})")
-                            self.logger.debug(f"      ✓ Swing Points: H={swing_high_count}, L={swing_low_count}")
                 except Exception as e:
-                    self.logger.debug(f"      ✗ Error find_swing_points: {e}")
+                    self.logger.debug(f"   Error find_swing_points: {e}")
                 
                 # 3. Channel Patterns
                 try:
@@ -222,9 +276,8 @@ class MinerviniScreenerPro:
                         last_pattern = df_channel['channel_pattern'].iloc[-1]
                         if pd.notna(last_pattern):
                             patterns.append(str(last_pattern))
-                            self.logger.debug(f"      ✓ Channel pattern: {last_pattern}")
                 except Exception as e:
-                    self.logger.debug(f"      ✗ Error detect_channel: {e}")
+                    self.logger.debug(f"   Error detect_channel: {e}")
                 
                 # 4. Double Top/Bottom
                 try:
@@ -233,9 +286,8 @@ class MinerviniScreenerPro:
                         last_pattern = df_double['double_pattern'].iloc[-1]
                         if pd.notna(last_pattern):
                             patterns.append(str(last_pattern))
-                            self.logger.debug(f"      ✓ Double pattern: {last_pattern}")
                 except Exception as e:
-                    self.logger.debug(f"      ✗ Error detect_double_top_bottom: {e}")
+                    self.logger.debug(f"   Error detect_double_top_bottom: {e}")
                 
                 # 5. Triangle Patterns
                 try:
@@ -244,9 +296,8 @@ class MinerviniScreenerPro:
                         last_pattern = df_triangle['triangle_pattern'].iloc[-1]
                         if pd.notna(last_pattern):
                             patterns.append(str(last_pattern))
-                            self.logger.debug(f"      ✓ Triangle pattern: {last_pattern}")
                 except Exception as e:
-                    self.logger.debug(f"      ✗ Error detect_triangle_pattern: {e}")
+                    self.logger.debug(f"   Error detect_triangle_pattern: {e}")
                 
                 # 6. Wedge Patterns
                 try:
@@ -255,9 +306,8 @@ class MinerviniScreenerPro:
                         last_pattern = df_wedge['wedge_pattern'].iloc[-1]
                         if pd.notna(last_pattern):
                             patterns.append(str(last_pattern))
-                            self.logger.debug(f"      ✓ Wedge pattern: {last_pattern}")
                 except Exception as e:
-                    self.logger.debug(f"      ✗ Error detect_wedge: {e}")
+                    self.logger.debug(f"   Error detect_wedge: {e}")
                 
                 # 7. Head & Shoulders
                 try:
@@ -266,9 +316,8 @@ class MinerviniScreenerPro:
                         last_pattern = df_hs['head_shoulder_pattern'].iloc[-1]
                         if pd.notna(last_pattern):
                             patterns.append(str(last_pattern))
-                            self.logger.debug(f"      ✓ Head & Shoulders: {last_pattern}")
                 except Exception as e:
-                    self.logger.debug(f"      ✗ Error head_and_shoulders: {e}")
+                    self.logger.debug(f"   Error head_and_shoulders: {e}")
                 
                 # 8. Multiple Tops/Bottoms
                 try:
@@ -277,60 +326,48 @@ class MinerviniScreenerPro:
                         last_pattern = df_multi['multiple_top_bottom_pattern'].iloc[-1]
                         if pd.notna(last_pattern):
                             patterns.append(str(last_pattern))
-                            self.logger.debug(f"      ✓ Multiple tops/bottoms: {last_pattern}")
                 except Exception as e:
-                    self.logger.debug(f"      ✗ Error detect_multiple_tops_bottoms: {e}")
-            
+                    self.logger.debug(f"   Error detect_multiple_tops_bottoms: {e}")
             else:
                 # Fallback jika PatternPy tidak tersedia
-                self.logger.debug("   PatternPy tidak tersedia, menggunakan fallback sederhana")
-                patterns.append("PatternPy tidak terinstall")
+                patterns.append("PatternPy tidak terinstall - gunakan fallback manual")
             
-            # ===== SUPPORT/RESISTANCE LEVELS (tetap pakai fungsi kita) =====
+            # ===== SUPPORT/RESISTANCE LEVELS =====
             sr_levels = self.detect_support_resistance(df)
             if sr_levels:
                 patterns.append(f"Support/Resistance: {sr_levels}")
-                self.logger.debug(f"      ✓ Support/Resistance: {sr_levels}")
             
-            # ===== MOVING AVERAGE ALIGNMENT (tetap pakai fungsi kita) =====
+            # ===== MOVING AVERAGE ALIGNMENT =====
             ma_alignment = self.detect_ma_alignment(df)
             if ma_alignment:
                 patterns.append(ma_alignment)
-                self.logger.debug(f"      ✓ MA Alignment: {ma_alignment}")
             
             # Gabungkan dengan koma
             if patterns:
                 patterns = list(dict.fromkeys(patterns))  # Hapus duplikat
                 result = ", ".join(patterns)
-                self.logger.debug(f"   ✅ Total {len(patterns)} pola: {result[:100]}...")
                 return result
             else:
-                self.logger.debug("   ❌ Tidak ada pola terdeteksi")
                 return ""
             
         except Exception as e:
-            self.logger.debug(f"   ❌ Error deteksi pola: {e}")
+            self.logger.debug(f"Error deteksi pola: {e}")
             return ""
 
     def detect_support_resistance(self, df, lookback=100, threshold=0.02):
-        """
-        Deteksi level support dan resistance horizontal
-        Returns: string seperti "R12500 S11200"
-        """
+        """Deteksi level support dan resistance horizontal"""
         try:
             if len(df) < lookback:
                 return ""
             
-            # Ambil data lookback terakhir
             recent_df = df.tail(lookback)
             highs = recent_df['High'].values
             lows = recent_df['Low'].values
             closes = recent_df['Close'].values
             
-            # Cari level yang sering disentuh
             levels = []
             
-            # Resistance: level tinggi yang diuji minimal 2 kali
+            # Resistance
             for i in range(len(highs)-10, len(highs)):
                 current_high = highs[i]
                 touch_count = 0
@@ -341,7 +378,7 @@ class MinerviniScreenerPro:
                     levels.append(f"R{current_high:.0f}")
                     break
             
-            # Support: level rendah yang diuji minimal 2 kali
+            # Support
             for i in range(len(lows)-10, len(lows)):
                 current_low = lows[i]
                 touch_count = 0
@@ -363,20 +400,14 @@ class MinerviniScreenerPro:
             if len(df) < 200:
                 return ""
             
-            # Hitung MA
             ma20 = df['Close'].rolling(20).mean().iloc[-1]
             ma50 = df['Close'].rolling(50).mean().iloc[-1]
             ma150 = df['Close'].rolling(150).mean().iloc[-1]
             ma200 = df['Close'].rolling(200).mean().iloc[-1]
             price = df['Close'].iloc[-1]
             
-            # Golden Cross (MA20 > MA50)
             golden_cross = ma20 > ma50
-            
-            # Perfect Order (MA20 > MA50 > MA150 > MA200)
             perfect_order = (ma20 > ma50 > ma150 > ma200)
-            
-            # Price above all MAs
             above_all = price > ma20 and price > ma50 and price > ma150 and price > ma200
             
             if perfect_order and above_all:
@@ -392,13 +423,10 @@ class MinerviniScreenerPro:
             return ""
 
     # ============================================
-    # FUNGSI RS RATING (2 DIGIT)
+    # FUNGSI RS RATING
     # ============================================
     def calculate_relative_strength(self, df):
-        """
-        RS Rating dengan hybrid method
-        Output: integer 0-99 (tanpa desimal)
-        """
+        """RS Rating dengan hybrid method"""
         if self.index_fetched and self.index_data is not None and len(df) >= 60:
             try:
                 common_dates = df.index.intersection(self.index_data.index)
@@ -430,7 +458,7 @@ class MinerviniScreenerPro:
             return 50
 
     # ============================================
-    # FUNGSI VCP SCORE (TETAP)
+    # FUNGSI VCP SCORE
     # ============================================
     def calculate_vcp_score(self, df):
         """Menghitung VCP Score (0-100)"""
@@ -535,7 +563,7 @@ class MinerviniScreenerPro:
             return 0
 
     # ============================================
-    # FUNGSI PROCESS ONE TICKER (HANYA 8/8 YANG DISIMPAN)
+    # FUNGSI PROCESS ONE TICKER
     # ============================================
     def process_one_ticker(self, ticker, index, total):
         """Fungsi yang akan dijalankan oleh masing-masing thread"""
@@ -559,7 +587,6 @@ class MinerviniScreenerPro:
             return None, display_name, f"Likuiditas rendah"
         
         try:
-            # Hitung indikator teknikal
             price = df['Close'].iloc[-1]
             ma50 = df['Close'].rolling(50).mean().iloc[-1]
             ma150 = df['Close'].rolling(150).mean().iloc[-1] if len(df) >= 150 else price
@@ -573,21 +600,12 @@ class MinerviniScreenerPro:
             low_52 = df['Low'].tail(200).min()
             high_52 = df['High'].tail(200).max()
             
-            # RS Rating (2 digit)
             rs_score = self.calculate_relative_strength(df)
-            
-            # VCP Score
             vcp_total, vcp_tight, vcp_vol = self.calculate_vcp_score(df)
             
-            # ===== DETEKSI POLA CHART (SEMUA DARI PATTERNPY) =====
-            print(f"\n   🔍 Mencari pola untuk {display_name}...")
+            # DETEKSI POLA
             patterns_str = self.detect_chart_patterns(df)
-            if patterns_str:
-                print(f"   ✅ Pola ditemukan: {patterns_str[:100]}...")
-            else:
-                print(f"   ❌ Tidak ada pola ditemukan")
             
-            # Evaluasi kriteria
             c1 = price > ma150 and price > ma200 if not pd.isna(ma150) and not pd.isna(ma200) else False
             c2 = ma150 > ma200 if not pd.isna(ma150) and not pd.isna(ma200) else False
             c3 = ma200 > ma200_22 if not pd.isna(ma200) and not pd.isna(ma200_22) else False
@@ -602,39 +620,29 @@ class MinerviniScreenerPro:
             
             pct_from_low = ((price / low_52) - 1) * 100 if low_52 > 0 else 0
             pct_from_high = (1 - (price / high_52)) * 100 if high_52 > 0 else 0
-            
-            # Hitung Risk/Reward Ratio
             rr_ratio = self.calculate_risk_reward(price)
             
-            # Hanya simpan jika score == 8 (8/8)
             if score == 8:
-                # Buat entry price untuk keterangan
                 entry_price = int(price)
-                
-                # Format harga untuk keterangan (tanpa Rp, angka saja)
                 entry_str = f"{entry_price:,}".replace(',', '.')
                 
-                # ===== BUAT KETERANGAN UNTUK GOOGLE SHEETS =====
-                # Format dasar
                 keterangan = f"Minervini 8/8 VCP:{vcp_total} RS:{rs_score} | Entry: {entry_str}"
                 
-                # TAMBAHKAN PATTERN JIKA ADA
                 if patterns_str and patterns_str.strip() and patterns_str != "":
                     keterangan += f" | {patterns_str}"
                 
-                # Buat result - HANYA UNTUK 8/8
                 result = {
                     'Ticker': display_name,
                     'Harga': f"Rp {entry_price:,}".replace(',', '.'),
                     'Status': '8/8',
                     'RS': rs_score,
                     'VCP': vcp_total,
-                    'Patterns': patterns_str,  # Untuk email
+                    'Patterns': patterns_str,
                     'RR_Ratio': rr_ratio,
                     'Turnover_M': f"{avg_turnover/1e6:.1f}M",
                     'Low': f"{pct_from_low:.1f}%",
                     'High': f"{pct_from_high:.1f}%",
-                    'Keterangan': keterangan,  # Untuk Google Sheets
+                    'Keterangan': keterangan,
                     'C1': '✓' if c1 else '✗',
                     'C2': '✓' if c2 else '✗',
                     'C3': '✓' if c3 else '✗',
@@ -650,7 +658,6 @@ class MinerviniScreenerPro:
                 
                 return result, display_name, None
             else:
-                # Tidak simpan untuk 7/8 atau di bawahnya
                 return None, display_name, f"Tidak lolos ({score}/8)"
             
         except Exception as e:
@@ -660,21 +667,18 @@ class MinerviniScreenerPro:
     # FUNGSI UTAMA SCREENING
     # ============================================
     def screen(self, tickers):
-        """
-        Fungsi utama screening dengan multithreading
-        """
+        """Fungsi utama screening dengan multithreading"""
         self.logger.info(f"\n{'='*80}")
         self.logger.info(f"MINERVINI PRO SCREENER v7.0 - PATTERNPY INTEGRATION")
         self.logger.info(f"{'='*80}")
         self.logger.info(f"Total saham: {len(tickers)}")
         self.logger.info(f"Thread workers: {self.max_workers}")
         if PATTERN_LIB_AVAILABLE:
-            self.logger.info(f"Pattern Library: ✅ PatternPy tersedia")
+            self.logger.info(f"Pattern Library: ✅ PatternPy tersedia - deteksi pola LENGKAP")
         else:
-            self.logger.info(f"Pattern Library: ⚠️ PatternPy tidak ada - deteksi pola terbatas")
+            self.logger.info(f"Pattern Library: ⚠️ PatternPy TIDAK tersedia - deteksi pola terbatas")
         self.logger.info(f"{'='*80}\n")
         
-        # Reset statistik
         self.total_saham = len(tickers)
         self.saham_lolos = 0
         self.saham_error = []
@@ -684,10 +688,8 @@ class MinerviniScreenerPro:
         self.results = []
         self.start_time = time.time()
         
-        # Ambil data IHSG untuk benchmark (opsional)
         self.fetch_ihsg_data()
         
-        # Filter ticker valid
         valid_tickers = [t for t in tickers if t and not t.startswith('#')]
         
         processed = 0
@@ -731,15 +733,12 @@ class MinerviniScreenerPro:
         
         print("\n")
         
-        # Buat DataFrame hasil
         if self.results:
             df_results = pd.DataFrame(self.results)
-            # Urutkan berdasarkan RS
             df_results = df_results.sort_values(['RS'], ascending=[False])
         else:
             df_results = pd.DataFrame()
         
-        # Ringkasan
         total_time = time.time() - self.start_time
         self.logger.info(f"\n{'='*80}")
         self.logger.info("📊 RINGKASAN SCREENING")
@@ -757,7 +756,6 @@ class MinerviniScreenerPro:
 # FUNGSI UNTUK TESTING
 # ============================================
 if __name__ == "__main__":
-    # Contoh penggunaan
     tickers = ["BBCA.JK", "BBRI.JK", "BMRI.JK"]
     screener = MinerviniScreenerPro()
     results = screener.screen(tickers)
