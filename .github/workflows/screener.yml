@@ -8,26 +8,45 @@ on:
 jobs:
   screening:
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
       
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-          
+          cache: 'pip'  # Cache dependencies untuk mempercepat
+      
+      - name: Upgrade pip
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade setuptools wheel
+      
       - name: Install dependencies
         run: |
-          pip install yfinance pandas numpy curl_cffi requests
+          pip install yfinance pandas numpy curl_cffi requests pytz
+          pip install patternpy  # Install PatternPy secara eksplisit
           
+      - name: Verify PatternPy installation
+        run: |
+          python -c "
+import sys
+try:
+    from patternpy.pivots import find_pivots
+    print('✅ PatternPy berhasil diinstall')
+except ImportError as e:
+    print(f'❌ PatternPy gagal: {e}')
+    sys.exit(1)
+"
+      
       - name: Run screener
         env:
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
-          # ===== TAMBAHKAN INI =====
           GOOGLE_SHEETS_WEBHOOK: ${{ secrets.GOOGLE_SHEETS_WEBHOOK }}
-          # =========================
         run: python main.py
         
       - name: Upload results
@@ -35,4 +54,5 @@ jobs:
         with:
           name: screening-results
           path: results/
+          retention-days: 7
           if-no-files-found: warn
