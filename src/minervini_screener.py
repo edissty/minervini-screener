@@ -10,8 +10,8 @@ import time
 import random
 import logging
 import sys
-from datetime import datetime, timedelta
-from curl_cffi import requests
+from datetime  datetime, timedelta
+from curl_cffi  requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 import os
@@ -24,6 +24,7 @@ pattern_import_error = ""
 
 try:
     # Import dari patternpy (fork edissty)
+    import patternpy
     from patternpy.pivots import find_pivots, find_swing_points
     from patternpy.patterns import (
         detect_channel,
@@ -36,7 +37,7 @@ try:
     from patternpy.support_resistance import calculate_support_resistance
     PATTERN_LIB_AVAILABLE = True
     print("=" * 60)
-    print("✅✅✅ PatternPy dari fork edissty BERHASIL diimport")
+    print("✅✅✅ PatternPy BERHASIL diimport")
     print("   - find_pivots tersedia")
     print("   - detect_channel tersedia")
     print("   - detect_double_top_bottom tersedia")
@@ -44,6 +45,12 @@ try:
     print("   - detect_wedge tersedia")
     print("   - head_and_shoulders tersedia")
     print("   - calculate_support_resistance tersedia")
+    print("=" * 60)
+except ImportError as e:
+    pattern_import_error = str(e)
+    print("=" * 60)
+    print(f"❌❌❌ PatternPy GAGAL diimport: {e}")
+    print("   Fallback ke pattern manual (breakout, candlestick, dll)")
     print("=" * 60)
 except ImportError as e:
     pattern_import_error = str(e)
