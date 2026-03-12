@@ -253,7 +253,7 @@ class MinerviniScreenerPro:
                         last_pattern = df_hs['head_shoulder_pattern'].iloc[-1]
                         if pd.notna(last_pattern):
                             patterns.append(str(last_pattern))
-                except Exception e:
+                except Exception as e:
                     self.logger.debug(f"   Error head_and_shoulders: {e}")
                 
                 # 7. Multiple Tops/Bottoms
