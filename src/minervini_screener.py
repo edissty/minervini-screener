@@ -17,7 +17,32 @@ from threading import Lock
 import os
 import pytz
 import traceback
+# ===== IMPORT PATTERNPY DARI LOKAL =====
+import sys
+import os
 
+# Tambahkan path PatternPy
+patternpy_path = os.path.join(os.path.dirname(__file__), '..', 'PatternPy')
+if os.path.exists(patternpy_path):
+    sys.path.insert(0, patternpy_path)
+    try:
+        from patternpy.pivots import find_pivots, find_swing_points
+        from patternpy.patterns import (
+            detect_channel,
+            detect_double_top_bottom,
+            detect_triangle_pattern,
+            detect_wedge,
+            head_and_shoulders,
+            detect_multiple_tops_bottoms
+        )
+        PATTERN_LIB_AVAILABLE = True
+        print("✅✅✅ PatternPy BERHASIL diimport!")
+    except ImportError as e:
+        PATTERN_LIB_AVAILABLE = False
+        print(f"❌ PatternPy gagal diimport: {e}")
+else:
+    PATTERN_LIB_AVAILABLE = False
+    print("❌❌❌ PatternPy tidak ditemukan")
 # ===== IMPORT M-PATTERNPY =====
 PATTERN_LIB_AVAILABLE = False
 pattern_import_error = ""
