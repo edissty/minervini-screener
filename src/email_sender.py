@@ -1,6 +1,6 @@
 # ============================================
-# EMAIL_SENDER.PY - MINERVINI SCREENER v6.5
-# Hanya mengirim SAHAM 8/8 ke email
+# EMAIL_SENDER.PY - MINERVINI SCREENER v8.0
+# Dengan Breakout Highlight di Trading Plan
 # ============================================
 
 import smtplib
@@ -55,14 +55,13 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
         msg = MIMEMultipart()
         msg['From'] = email_from
         msg['To'] = email_to
-        msg['Subject'] = f"📊 MINERVINI SCREENER 8/8 + CHART PATTERNS - {wib_time.strftime('%d-%m-%Y %H:%M')} WIB"
+        msg['Subject'] = f"📊 MINERVINI SCREENER 8/8 + BREAKOUT - {wib_time.strftime('%d-%m-%Y %H:%M')} WIB"
         
         if df is not None and not df.empty:
             # Filter hanya 8/8
             df_88 = df[df['Status'] == '8/8'] if 'Status' in df.columns else df
             
             if df_88.empty:
-                # Jika tidak ada 8/8, tetap kirim notifikasi
                 body = f"""
                 <html>
                 <body>
@@ -80,6 +79,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                 msg.attach(MIMEText(body, 'html'))
             else:
                 total_8 = len(df_88)
+                breakout_count = df_88['Patterns'].str.contains('BREAKOUT', na=False).sum() if 'Patterns' in df_88.columns else 0
                 
                 # Buat tabel HTML
                 table_html = df_88.to_html(index=False, escape=False, classes='screening-table')
@@ -94,13 +94,16 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                     patterns = row['Patterns'] if 'Patterns' in row else 'Tidak ada pola'
                     rr = row['RR_Ratio'] if 'RR_Ratio' in row else '2.9'
                     
+                    # Deteksi apakah ada breakout
+                    is_breakout = 'BREAKOUT' in str(patterns).upper()
+                    
                     # Hitung level trading
                     harga_numeric = parse_price(harga)
                     if harga_numeric > 0:
                         entry_price = harga_numeric
-                        stop_loss = entry_price * 0.93  # 7% stop loss
-                        target1 = entry_price * 1.20    # 20% target
-                        target2 = entry_price * 1.40    # 40% target
+                        stop_loss = entry_price * 0.93
+                        target1 = entry_price * 1.20
+                        target2 = entry_price * 1.40
                         
                         risk = entry_price - stop_loss
                         reward = target1 - entry_price
@@ -117,10 +120,16 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                         target2_str = "-"
                         risk_reward = 0
                     
-                    # Buat trading plan card
+                    # Warna card berdasarkan breakout
+                    card_color = "#fff3cd" if is_breakout else "#f0f7ff"
+                    border_color = "#ffc107" if is_breakout else "#27ae60"
+                    
                     trading_plans_html += f"""
-                    <div style="background-color: #f0f7ff; padding: 15px; margin: 15px 0; border-left: 5px solid #27ae60; border-radius: 10px;">
-                        <h4 style="margin-top: 0; color: #2c3e50;">📈 {ticker} - Trading Plan (8/8)</h4>
+                    <div style="background-color: {card_color}; padding: 15px; margin: 15px 0; border-left: 5px solid {border_color}; border-radius: 10px;">
+                        <h4 style="margin-top: 0; color: #2c3e50;">
+                            📈 {ticker} - Trading Plan
+                            {f'<span style="background-color: #ffc107; color: #000; padding: 3px 10px; border-radius: 15px; font-size: 12px; margin-left: 10px;">🚀 BREAKOUT</span>' if is_breakout else ''}
+                        </h4>
                         <table style="width: 100%; border-collapse: collapse;">
                             <tr>
                                 <td style="padding: 8px; width: 30%;"><strong>Entry Point:</strong></td>
@@ -148,7 +157,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                             </tr>
                             <tr>
                                 <td style="padding: 8px;"><strong>Chart Patterns:</strong></td>
-                                <td style="padding: 8px; color: {'#27ae60' if patterns != 'Tidak ada pola' else '#7f8c8d'};">
+                                <td style="padding: 8px; color: {'#d32f2f' if 'BREAKOUT' in patterns else '#27ae60'};">
                                     {patterns}
                                 </td>
                             </tr>
@@ -156,7 +165,6 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                     </div>
                     """
                 
-                # Body email
                 body = f"""
                 <html>
                 <head>
@@ -181,10 +189,6 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                             padding-bottom: 10px;
                             margin-top: 0;
                         }}
-                        h3 {{
-                            color: #34495e;
-                            margin-top: 25px;
-                        }}
                         .summary-box {{
                             background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
                             color: white;
@@ -192,29 +196,12 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                             border-radius: 10px;
                             margin: 20px 0;
                         }}
-                        .summary-box p {{
-                            font-size: 24px;
-                            margin: 10px 0;
-                        }}
-                        .criteria-box {{
-                            background-color: #f8f9fa;
+                        .breakout-box {{
+                            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+                            color: #000;
                             padding: 20px;
                             border-radius: 10px;
                             margin: 20px 0;
-                            border-left: 5px solid #27ae60;
-                        }}
-                        .criteria-list {{
-                            display: grid;
-                            grid-template-columns: repeat(2, 1fr);
-                            gap: 10px;
-                            list-style: none;
-                            padding: 0;
-                        }}
-                        .criteria-list li {{
-                            padding: 8px;
-                            background-color: white;
-                            border-radius: 5px;
-                            border-left: 3px solid #27ae60;
                         }}
                         table {{ 
                             border-collapse: collapse; 
@@ -236,16 +223,8 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                             border: 1px solid #ddd; 
                             padding: 8px; 
                         }}
-                        tr:nth-child(even) {{ 
-                            background-color: #f8f9fa; 
-                        }}
-                        .badge-8 {{
-                            background-color: #27ae60;
-                            color: white;
-                            padding: 3px 10px;
-                            border-radius: 15px;
-                            font-weight: bold;
-                            display: inline-block;
+                        .breakout-row {{
+                            background-color: #fff3cd !important;
                         }}
                         .footer {{
                             margin-top: 30px;
@@ -259,26 +238,13 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                 </head>
                 <body>
                     <div class="container">
-                        <h2>📈 MINERVINI SCREENER + CHART PATTERNS - 8/8 ONLY</h2>
+                        <h2>📈 MINERVINI SCREENER + BREAKOUT DETECTION</h2>
                         <p><strong>Waktu Screening:</strong> {wib_time.strftime('%d-%m-%Y %H:%M:%S')} WIB</p>
                         
                         <div class="summary-box">
                             <h3 style="color: white; margin-top: 0;">📊 RINGKASAN</h3>
                             <p>Total Saham 8/8: <strong>{total_8}</strong></p>
-                        </div>
-                        
-                        <div class="criteria-box">
-                            <h3>🎯 8 KRITERIA MINERVINI</h3>
-                            <ul class="criteria-list">
-                                <li><strong>C1:</strong> Harga > MA150 & MA200</li>
-                                <li><strong>C2:</strong> MA150 > MA200</li>
-                                <li><strong>C3:</strong> MA200 Menanjak (1 bulan)</li>
-                                <li><strong>C4:</strong> MA50 > MA150 & MA200</li>
-                                <li><strong>C5:</strong> Harga > MA50</li>
-                                <li><strong>C6:</strong> Harga > 30% dari Low 52-W</li>
-                                <li><strong>C7:</strong> Harga dalam 25% dari High 52-W</li>
-                                <li><strong>C8:</strong> Relative Strength > 70</li>
-                            </ul>
+                            <p>Saham dengan Breakout: <strong>{breakout_count}</strong></p>
                         </div>
                         
                         <h3>📋 DETAIL SAHAM 8/8</h3>
@@ -289,9 +255,8 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                         {trading_plans_html}
                         
                         <div class="footer">
-                            <p><i>Hanya saham dengan 8/8 kriteria Minervini yang ditampilkan.</i></p>
-                            <p><i>Stop Loss 7%, Target 1: 20%, Target 2: 40% (sesuai standar Minervini).</i></p>
-                            <p>Generated by Minervini Screener v6.5 • {wib_time.strftime('%d-%m-%Y %H:%M:%S')} WIB</p>
+                            <p><i>🚀 BREAKOUT = Harga mendekati resistance + Volume tinggi + Candle kuat</i></p>
+                            <p>Generated by Minervini Screener v8.0 • {wib_time.strftime('%d-%m-%Y %H:%M:%S')} WIB</p>
                         </div>
                     </div>
                 </body>
@@ -300,7 +265,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                 
                 msg.attach(MIMEText(body, 'html'))
                 
-                # Lampirkan CSV (hanya 8/8)
+                # Lampirkan CSV
                 csv_data = df_88.to_csv(index=False)
                 attachment = MIMEApplication(csv_data.encode('utf-8'))
                 attachment.add_header(
@@ -310,7 +275,6 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                 msg.attach(attachment)
             
         else:
-            # Email ketika tidak ada data sama sekali
             body = f"""
             <html>
             <body>
@@ -327,8 +291,6 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
             """
             msg.attach(MIMEText(body, 'html'))
         
-        # Kirim email
-        print(f"📤 Menghubungi server {smtp_server}:{port}...")
         server = smtplib.SMTP(smtp_server, port)
         server.starttls()
         server.login(email_from, password)
