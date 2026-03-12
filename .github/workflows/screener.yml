@@ -2,7 +2,7 @@ name: Minervini Stock Screener
 
 on:
   schedule:
-    - cron: '0 1,9 * * *'
+    - cron: '0 1,9 * * *'   # 08:00 dan 16:00 WIB
   workflow_dispatch:
 
 jobs:
@@ -24,21 +24,20 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install --upgrade setuptools wheel
       
-      - name: Install numpy and pandas first
+      - name: Install all dependencies
         run: |
-          pip install numpy pandas
+          # Install semua library yang diperlukan
+          pip install yfinance pandas numpy curl_cffi requests pytz
+          
+          # Coba install m-patternpy (opsional)
+          pip install m-patternpy || echo "⚠️ m-patternpy tidak tersedia, akan pakai pattern manual"
       
-      - name: Debug - List installed packages
-        run: pip list
-      
-      - name: Install m-patternpy
-        run: pip install m-patternpy
-      
-      - name: Debug - Check m-patternpy installation
-        run: pip list | grep -i pattern || echo "m-patternpy tidak ditemukan"
-      
-      - name: Test import m-patternpy
-        run: python -c "import sys; print('Mencoba import m_patternpy...'); import m_patternpy; print('✅ Berhasil import m_patternpy')" || echo "⚠️ Import gagal, lanjutkan dengan pattern manual"
+      - name: Verify installations
+        run: |
+          python -c "import yfinance; print('✅ yfinance OK')"
+          python -c "import pandas; print('✅ pandas OK')"
+          python -c "import numpy; print('✅ numpy OK')"
+          python -c "import curl_cffi; print('✅ curl_cffi OK')"
       
       - name: Run screener
         env:
