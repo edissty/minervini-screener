@@ -17,7 +17,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-          cache: 'pip'  # Cache dependencies untuk mempercepat
+          cache: 'pip'
       
       - name: Upgrade pip
         run: |
@@ -27,8 +27,8 @@ jobs:
       - name: Install dependencies
         run: |
           pip install yfinance pandas numpy curl_cffi requests pytz
-          pip install patternpy  # Install PatternPy secara eksplisit
-          
+          pip install patternpy
+      
       - name: Verify PatternPy installation
         run: |
           python -c "
