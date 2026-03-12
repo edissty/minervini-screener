@@ -27,29 +27,10 @@ jobs:
       - name: Install dependencies
         run: |
           pip install yfinance pandas numpy curl_cffi requests pytz
-          pip install m-patternpy
+          pip install ta  # Technical Analysis Library
       
-      - name: Debug - List installed packages
-        run: pip list | grep pattern
-      
-      - name: Debug - Try different import names
-        run: |
-          python -c "
-import pkgutil
-print('📦 Mencari paket yang terinstall:')
-for importer, modname, ispkg in pkgutil.iter_modules():
-    if 'pattern' in modname:
-        print(f'  - {modname}')
-"
-      
-      - name: Try import patternpy
-        run: python -c "import patternpy; print('✅ patternpy OK')" || true
-      
-      - name: Try import m_patternpy
-        run: python -c "import m_patternpy; print('✅ m_patternpy OK')" || true
-      
-      - name: Try import m_patterns
-        run: python -c "import m_patterns; print('✅ m_patterns OK')" || true
+      - name: Verify TA library
+        run: python -c "import ta; print('✅ TA Library OK')"
       
       - name: Run screener
         env:
