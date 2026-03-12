@@ -119,8 +119,8 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                     
                     # Buat trading plan card
                     trading_plans_html += f"""
-                    <div style="background-color: #f0f7ff; padding: 15px; margin: 15px 0; border-left: 5px solid #3498db; border-radius: 10px;">
-                        <h4 style="margin-top: 0; color: #2c3e50;">📈 {ticker} - Trading Plan</h4>
+                    <div style="background-color: #f0f7ff; padding: 15px; margin: 15px 0; border-left: 5px solid #27ae60; border-radius: 10px;">
+                        <h4 style="margin-top: 0; color: #2c3e50;">📈 {ticker} - Trading Plan (8/8)</h4>
                         <table style="width: 100%; border-collapse: collapse;">
                             <tr>
                                 <td style="padding: 8px; width: 30%;"><strong>Entry Point:</strong></td>
@@ -148,7 +148,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                             </tr>
                             <tr>
                                 <td style="padding: 8px;"><strong>Chart Patterns:</strong></td>
-                                <td style="padding: 8px; color: {'green' if patterns != 'Tidak ada pola' else 'gray'};">
+                                <td style="padding: 8px; color: {'#27ae60' if patterns != 'Tidak ada pola' else '#7f8c8d'};">
                                     {patterns}
                                 </td>
                             </tr>
@@ -201,7 +201,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                             padding: 20px;
                             border-radius: 10px;
                             margin: 20px 0;
-                            border-left: 5px solid #3498db;
+                            border-left: 5px solid #27ae60;
                         }}
                         .criteria-list {{
                             display: grid;
@@ -214,7 +214,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                             padding: 8px;
                             background-color: white;
                             border-radius: 5px;
-                            border-left: 3px solid #3498db;
+                            border-left: 3px solid #27ae60;
                         }}
                         table {{ 
                             border-collapse: collapse; 
@@ -285,7 +285,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                         <p><small>✓ = Memenuhi kriteria | ✗ = Tidak memenuhi</small></p>
                         {table_html}
                         
-                        <h3>📊 TRADING PLAN</h3>
+                        <h3>📊 TRADING PLAN (8/8)</h3>
                         {trading_plans_html}
                         
                         <div class="footer">
