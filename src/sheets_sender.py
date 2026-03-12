@@ -1,3 +1,8 @@
+# ============================================
+# SHEETS_SENDER.PY - MINERVINI SCREENER v6.5
+# Hanya mengirim SAHAM 8/8 ke Google Sheets
+# ============================================
+
 import requests
 import json
 from datetime import datetime
@@ -10,34 +15,35 @@ def send_to_google_sheets(df, webhook_url):
     
     try:
         if df is None or df.empty:
-            print("  ⚠ Tidak ada data 8/8 untuk dikirim")
+            print("  ⚠ Tidak ada data untuk dikirim")
             return False
         
-        # Konversi DataFrame ke list of dicts - HANYA 8/8
-        results = []
-        for _, row in df.iterrows():
-            # Ambil hanya saham dengan Status 8/8
-            if row.get('Status') == '8/8':
-                result = {
-                    'Ticker': row.get('Ticker', ''),
-                    'Status': '8/8',  # Pastikan 8/8
-                    'Harga': row.get('Harga', '0'),
-                    'VCP': row.get('VCP', '0'),
-                    'RS': row.get('RS', '0'),
-                    'Keterangan': row.get('Keterangan', '')  # Keterangan dengan pola
-                }
-                results.append(result)
+        # Filter hanya 8/8
+        df_88 = df[df['Status'] == '8/8'] if 'Status' in df.columns else df
         
-        if not results:
+        if df_88.empty:
             print("  ⚠ Tidak ada saham 8/8 dalam data")
             return False
+        
+        # Konversi DataFrame ke list of dicts
+        results = []
+        for _, row in df_88.iterrows():
+            result = {
+                'Ticker': row.get('Ticker', ''),
+                'Status': '8/8',
+                'Harga': row.get('Harga', '0'),
+                'VCP': row.get('VCP', '0'),
+                'RS': row.get('RS', '0'),
+                'Keterangan': row.get('Keterangan', '')  # Untuk pattern
+            }
+            results.append(result)
         
         # Buat payload
         payload = {
             'timestamp': datetime.now().isoformat(),
             'total': len(results),
             'results': results,
-            'type': '88_only'  # Tandai khusus 8/8
+            'type': '88_only'
         }
         
         print(f"  📤 Mengirim {len(results)} data 8/8 ke Google Sheets...")
