@@ -42,8 +42,6 @@ jobs:
       - name: Install PatternPy
         run: |
           cd PatternPy
-          
-          # Cek file setup
           if [ -f setup.py ]; then
             echo "✅ Menemukan setup.py, menginstall..."
             pip install .
@@ -52,19 +50,14 @@ jobs:
             pip install .
           else
             echo "⚠️ Tidak menemukan file instalasi, coba install dari folder saat ini"
-            # Coba install sebagai package biasa
             pip install -e .
           fi
-          
           cd ..
       
       - name: Test PatternPy installation
         run: |
-          python -c "
-import sys
-print('🔍 Mencari PatternPy...')
+          python -c "import sys; print('🔍 Mencari PatternPy...')
 try:
-    # Coba beberapa kemungkinan nama module
     try:
         import patternpy
         print(f'✅ patternpy ditemukan di: {patternpy.__file__}')
@@ -81,8 +74,7 @@ try:
                 sys.exit(1)
 except Exception as e:
     print(f'❌ Error: {e}')
-    sys.exit(1)
-"
+    sys.exit(1)"
       
       - name: Run screener
         env:
