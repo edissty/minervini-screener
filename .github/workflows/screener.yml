@@ -12,34 +12,58 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-          cache: 'pip'
       
-      - name: Upgrade pip
+      - name: Install core dependencies
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install --upgrade setuptools wheel
+          pip install --upgrade pip
+          pip install numpy pandas  # Install numpy & pandas first
       
-      - name: Install dependencies
+      - name: Clone and install PatternPy from fork
         run: |
-          pip install yfinance pandas numpy curl_cffi requests pytz
-      
-      - name: Install PatternPy from fork
-        run: |
+          # Clone repository fork Anda
           git clone https://github.com/edissty/PatternPy.git
+          
+          # Masuk ke direktori
           cd PatternPy
+          
+          # Install PatternPy (numpy & pandas sudah terinstall)
           pip install .
+          
+          # Kembali dan cleanup
           cd ..
           rm -rf PatternPy
       
-      - name: Test PatternPy
-        run: python -c "import patternpy; print('✅ PatternPy OK')" || python -c "import PatternPy; print('✅ PatternPy OK')" || python -c "import patterns; print('✅ Patterns OK')" || echo "⚠️ PatternPy tidak ditemukan"
+      - name: Install remaining dependencies
+        run: |
+          pip install yfinance curl_cffi requests pytz
+      
+      - name: Verify PatternPy installation
+        run: |
+          python -c "
+import sys
+print('🔍 Verifikasi PatternPy...')
+try:
+    import patternpy
+    print(f'✅ patternpy ditemukan di: {patternpy.__file__}')
+    from patternpy.pivots import find_pivots
+    print('   - find_pivots tersedia')
+    from patternpy.patterns import detect_channel
+    print('   - detect_channel tersedia')
+    print('✅✅✅ PatternPy BERHASIL diinstall!')
+except ImportError as e:
+    print(f'❌ Gagal import patternpy: {e}')
+    try:
+        import PatternPy as patternpy
+        print(f'✅ PatternPy (capitalized) ditemukan')
+    except ImportError:
+        print('❌ PatternPy tidak dapat diimport')
+        sys.exit(1)
+"
       
       - name: Run screener
         env:
@@ -54,5 +78,3 @@ jobs:
         with:
           name: screening-results
           path: results/
-          retention-days: 7
-          if-no-files-found: warn
