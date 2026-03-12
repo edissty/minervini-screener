@@ -17,27 +17,37 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
+          cache: 'pip'
       
-      - name: Install core dependencies
+      - name: Upgrade pip
         run: |
-          pip install --upgrade pip
-          pip install numpy pandas
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade setuptools wheel
       
-      - name: Clone and install PatternPy from fork
+      - name: Install dependencies
         run: |
-          git clone https://github.com/edissty/PatternPy.git
-          cd PatternPy
-          pip install .
-          cd ..
-          rm -rf PatternPy
+          # Install core dependencies
+          pip install numpy pandas yfinance curl_cffi requests pytz
+          
+          # Install m-patternpy dari PyPI (PASTI BERHASIL)
+          pip install m-patternpy
       
-      - name: Install remaining dependencies
+      - name: Verify m-patternpy installation
         run: |
-          pip install yfinance curl_cffi requests pytz
-      
-      - name: Verify PatternPy installation
-        run: |
-          python -c "import sys; print('🔍 Verifikasi PatternPy...'); import patternpy; print(f'✅ patternpy ditemukan di: {patternpy.__file__}'); from patternpy.pivots import find_pivots; print('   - find_pivots tersedia'); from patternpy.patterns import detect_channel; print('   - detect_channel tersedia'); print('✅✅✅ PatternPy BERHASIL diinstall!')"
+          python -c "
+import sys
+print('🔍 Verifikasi m-patternpy...')
+try:
+    import m_patternpy
+    print(f'✅ m-patternpy versi: {m_patternpy.__version__}')
+    from m_patternpy.patterns import head_and_shoulders, double_top_bottom
+    print('   - head_and_shoulders tersedia')
+    print('   - double_top_bottom tersedia')
+    print('✅✅✅ m-patternpy BERHASIL diinstall!')
+except ImportError as e:
+    print(f'❌ Gagal: {e}')
+    sys.exit(1)
+"
       
       - name: Run screener
         env:
@@ -52,3 +62,5 @@ jobs:
         with:
           name: screening-results
           path: results/
+          retention-days: 7
+          if-no-files-found: warn
