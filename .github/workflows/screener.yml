@@ -29,38 +29,10 @@ jobs:
           pip install yfinance pandas numpy curl_cffi requests pytz
       
       - name: Install PatternPy from fork edissty
-        run: |
-          echo "📦 Menginstall PatternPy dari fork edissty..."
-          pip install git+https://github.com/edissty/PatternPy.git
+        run: pip install git+https://github.com/edissty/PatternPy.git
       
       - name: Verify PatternPy installation
-        run: |
-          python -c "
-import sys
-print('🔍 Verifikasi PatternPy...')
-try:
-    from patternpy.pivots import find_pivots
-    from patternpy.patterns import (
-        detect_channel,
-        detect_double_top_bottom,
-        detect_triangle_pattern,
-        detect_wedge,
-        head_and_shoulders,
-        detect_multiple_tops_bottoms
-    )
-    from patternpy.support_resistance import calculate_support_resistance
-    print('✅✅✅ PatternPy BERHASIL diinstall dari fork edissty!')
-    print('   - find_pivots tersedia')
-    print('   - detect_channel tersedia')
-    print('   - detect_double_top_bottom tersedia')
-    print('   - detect_triangle_pattern tersedia')
-    print('   - detect_wedge tersedia')
-    print('   - head_and_shoulders tersedia')
-    print('   - calculate_support_resistance tersedia')
-except ImportError as e:
-    print(f'❌❌❌ PatternPy GAGAL diinstall: {e}')
-    sys.exit(1)
-"
+        run: python -c "from patternpy.pivots import find_pivots; print('✅ PatternPy OK')"
       
       - name: Run screener
         env:
