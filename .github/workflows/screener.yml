@@ -21,20 +21,13 @@ jobs:
       - name: Install core dependencies
         run: |
           pip install --upgrade pip
-          pip install numpy pandas  # Install numpy & pandas first
+          pip install numpy pandas
       
       - name: Clone and install PatternPy from fork
         run: |
-          # Clone repository fork Anda
           git clone https://github.com/edissty/PatternPy.git
-          
-          # Masuk ke direktori
           cd PatternPy
-          
-          # Install PatternPy (numpy & pandas sudah terinstall)
           pip install .
-          
-          # Kembali dan cleanup
           cd ..
           rm -rf PatternPy
       
@@ -44,26 +37,7 @@ jobs:
       
       - name: Verify PatternPy installation
         run: |
-          python -c "
-import sys
-print('🔍 Verifikasi PatternPy...')
-try:
-    import patternpy
-    print(f'✅ patternpy ditemukan di: {patternpy.__file__}')
-    from patternpy.pivots import find_pivots
-    print('   - find_pivots tersedia')
-    from patternpy.patterns import detect_channel
-    print('   - detect_channel tersedia')
-    print('✅✅✅ PatternPy BERHASIL diinstall!')
-except ImportError as e:
-    print(f'❌ Gagal import patternpy: {e}')
-    try:
-        import PatternPy as patternpy
-        print(f'✅ PatternPy (capitalized) ditemukan')
-    except ImportError:
-        print('❌ PatternPy tidak dapat diimport')
-        sys.exit(1)
-"
+          python -c "import sys; print('🔍 Verifikasi PatternPy...'); import patternpy; print(f'✅ patternpy ditemukan di: {patternpy.__file__}'); from patternpy.pivots import find_pivots; print('   - find_pivots tersedia'); from patternpy.patterns import detect_channel; print('   - detect_channel tersedia'); print('✅✅✅ PatternPy BERHASIL diinstall!')"
       
       - name: Run screener
         env:
