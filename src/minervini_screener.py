@@ -1,6 +1,7 @@
 # ============================================
-# MINERVINI PRO SCREENER - DENGAN DETEKSI POLA CHART
-# Versi 6.1 - Fix IHSG Fetch & Pattern Detection
+# MINERVINI PRO SCREENER - VERSI FINAL
+# Hanya mengirim SAHAM 8/8 ke Google Sheets
+# Format Keterangan: Minervini 8/8 VCP:82 RS:85 | Entry: 11.250
 # ============================================
 
 import yfinance as yf
@@ -35,8 +36,9 @@ except ImportError:
 
 class MinerviniScreenerPro:
     """
-    Screener saham syariah Indonesia dengan 8 kriteria Minervini + VCP Scoring
-    + Deteksi Pola Chart Otomatis
+    Screener saham syariah Indonesia dengan 8 kriteria Minervini
+    Output: Hanya mengirim SAHAM 8/8 ke Google Sheets
+    Format Keterangan: Minervini 8/8 VCP:82 RS:85 | Entry: 11.250
     """
     
     def __init__(self, min_turnover=300_000_000, max_workers=15, log_level=logging.INFO):
@@ -51,7 +53,7 @@ class MinerviniScreenerPro:
             'C5': 'Harga > MA50',
             'C6': 'Harga > 30% dari Low 52-W',
             'C7': 'Harga dekat High 52-W (dlm 25%)',
-            'C8': 'RS Rating > 70 (Top 30% saham)'
+            'C8': 'RS Rating > 70'
         }
         
         self.index_data = None
@@ -132,12 +134,12 @@ class MinerviniScreenerPro:
     def detect_chart_patterns(self, df):
         """
         Mendeteksi berbagai pola chart dari data OHLC
-        Returns: list of patterns detected
+        Returns: string patterns yang siap digabung
         """
         patterns = []
         
         if df is None or len(df) < 100:
-            return patterns
+            return ""
         
         try:
             # Fix timezone
@@ -145,10 +147,6 @@ class MinerviniScreenerPro:
             
             # ===== 1. VCP Score (sudah ada) =====
             vcp_total, vcp_tight, vcp_vol = self.calculate_vcp_score(df)
-            if vcp_total >= 70:
-                patterns.append(f"VCP Kuat ({vcp_total})")
-            elif vcp_total >= 50:
-                patterns.append(f"VCP Sedang ({vcp_total})")
             
             # ===== 2. Support/Resistance Detection =====
             sr_levels = self.detect_support_resistance(df)
@@ -186,17 +184,17 @@ class MinerviniScreenerPro:
                 lib_patterns = self.detect_patternpy(df)
                 patterns.extend(lib_patterns)
             
-            # Hapus duplikat
-            patterns = list(dict.fromkeys(patterns))
+            # Gabungkan dengan koma
+            return ", ".join(patterns)
             
         except Exception as e:
             self.logger.debug(f"Error deteksi pola: {e}")
-        
-        return patterns
+            return ""
 
     def detect_support_resistance(self, df, lookback=100, threshold=0.02):
         """
         Deteksi level support dan resistance horizontal
+        Returns: string seperti "R12500 S11200"
         """
         try:
             if len(df) < lookback:
@@ -380,10 +378,13 @@ class MinerviniScreenerPro:
         return patterns
 
     # ============================================
-    # FUNGSI RS RATING (HYBRID)
+    # FUNGSI RS RATING (2 DIGIT)
     # ============================================
     def calculate_relative_strength(self, df):
-        """RS Rating dengan hybrid method"""
+        """
+        RS Rating dengan hybrid method
+        Output: integer 0-99 (tanpa desimal)
+        """
         if self.index_fetched and self.index_data is not None and len(df) >= 60:
             try:
                 common_dates = df.index.intersection(self.index_data.index)
@@ -398,7 +399,7 @@ class MinerviniScreenerPro:
                     rs_score = 50 + outperf
                     rs_score = max(1, min(99, rs_score))
                     
-                    return rs_score
+                    return int(round(rs_score))
             except:
                 pass
         
@@ -409,13 +410,13 @@ class MinerviniScreenerPro:
             returns = df['Close'].pct_change(60).iloc[-1] * 100
             if pd.notna(returns):
                 rs = min(99, max(1, returns + 50))
-                return rs
+                return int(round(rs))
             return 50
         except:
             return 50
 
     # ============================================
-    # FUNGSI VCP SCORE
+    # FUNGSI VCP SCORE (TETAP)
     # ============================================
     def calculate_vcp_score(self, df):
         """Menghitung VCP Score (0-100)"""
@@ -520,7 +521,7 @@ class MinerviniScreenerPro:
             return 0
 
     # ============================================
-    # FUNGSI PROCESS ONE TICKER (DENGAN DETEKSI POLA)
+    # FUNGSI PROCESS ONE TICKER (HANYA 8/8 YANG DISIMPAN)
     # ============================================
     def process_one_ticker(self, ticker, index, total):
         """Fungsi yang akan dijalankan oleh masing-masing thread"""
@@ -558,15 +559,14 @@ class MinerviniScreenerPro:
             low_52 = df['Low'].tail(200).min()
             high_52 = df['High'].tail(200).max()
             
-            # RS Rating
+            # RS Rating (2 digit)
             rs_score = self.calculate_relative_strength(df)
             
             # VCP Score
             vcp_total, vcp_tight, vcp_vol = self.calculate_vcp_score(df)
             
             # ===== DETEKSI POLA CHART =====
-            patterns = self.detect_chart_patterns(df)
-            patterns_str = ', '.join(patterns) if patterns else 'Tidak ada pola'
+            patterns_str = self.detect_chart_patterns(df)
             
             # Evaluasi kriteria
             c1 = price > ma150 and price > ma200 if not pd.isna(ma150) and not pd.isna(ma200) else False
@@ -587,34 +587,48 @@ class MinerviniScreenerPro:
             # Hitung Risk/Reward Ratio
             rr_ratio = self.calculate_risk_reward(price)
             
-            # Buat result DENGAN POLA CHART
-            result = {
-                'Ticker': display_name,
-                'Harga': f"Rp {int(price):,}".replace(',', '.'),
-                'Skor': f"{score}/8",
-                'Status': '8/8' if score == 8 else '7/8',
-                'RS': rs_score,
-                'VCP': vcp_total,
-                'Patterns': patterns_str,
-                'RR_Ratio': rr_ratio,
-                'Turnover_M': f"{avg_turnover/1e6:.1f}M",
-                'Low': f"{pct_from_low:.1f}%",
-                'High': f"{pct_from_high:.1f}%",
-                'C1': '✓' if c1 else '✗',
-                'C2': '✓' if c2 else '✗',
-                'C3': '✓' if c3 else '✗',
-                'C4': '✓' if c4 else '✗',
-                'C5': '✓' if c5 else '✗',
-                'C6': '✓' if c6 else '✗',
-                'C7': '✓' if c7 else '✗',
-                'C8': '✓' if c8 else '✗',
-            }
-            
-            with self.lock:
-                if score >= 7:
+            # Hanya simpan jika score == 8 (8/8)
+            if score == 8:
+                # Buat entry price untuk keterangan
+                entry_price = int(price)
+                
+                # Format harga untuk keterangan (tanpa Rp, angka saja)
+                entry_str = f"{entry_price:,}".replace(',', '.')
+                
+                # Buat keterangan untuk Google Sheets
+                # Format: Minervini 8/8 VCP:82 RS:85 | Entry: 11.250
+                keterangan = f"Minervini 8/8 VCP:{vcp_total} RS:{rs_score} | Entry: {entry_str}"
+                
+                # Buat result - HANYA UNTUK 8/8
+                result = {
+                    'Ticker': display_name,
+                    'Harga': f"Rp {entry_price:,}".replace(',', '.'),
+                    'Status': '8/8',
+                    'RS': rs_score,
+                    'VCP': vcp_total,
+                    'Patterns': patterns_str,
+                    'RR_Ratio': rr_ratio,
+                    'Turnover_M': f"{avg_turnover/1e6:.1f}M",
+                    'Low': f"{pct_from_low:.1f}%",
+                    'High': f"{pct_from_high:.1f}%",
+                    'Keterangan': keterangan,  # Untuk Google Sheets
+                    'C1': '✓' if c1 else '✗',
+                    'C2': '✓' if c2 else '✗',
+                    'C3': '✓' if c3 else '✗',
+                    'C4': '✓' if c4 else '✗',
+                    'C5': '✓' if c5 else '✗',
+                    'C6': '✓' if c6 else '✗',
+                    'C7': '✓' if c7 else '✗',
+                    'C8': '✓' if c8 else '✗',
+                }
+                
+                with self.lock:
                     self.saham_lolos += 1
-            
-            return result, display_name, None
+                
+                return result, display_name, None
+            else:
+                # Tidak simpan untuk 7/8 atau di bawahnya
+                return None, display_name, f"Tidak lolos ({score}/8)"
             
         except Exception as e:
             return None, display_name, f"Error: {str(e)[:50]}"
@@ -627,7 +641,7 @@ class MinerviniScreenerPro:
         Fungsi utama screening dengan multithreading
         """
         self.logger.info(f"\n{'='*80}")
-        self.logger.info(f"MINERVINI PRO SCREENER v6.1 - DENGAN DETEKSI POLA")
+        self.logger.info(f"MINERVINI PRO SCREENER v6.3 - HANYA 8/8")
         self.logger.info(f"{'='*80}")
         self.logger.info(f"Total saham: {len(tickers)}")
         self.logger.info(f"Thread workers: {self.max_workers}")
@@ -682,13 +696,13 @@ class MinerviniScreenerPro:
                 if result:
                     success += 1
                     self.results.append(result)
-                    status = f"✅ {result['Skor']} {result['Ticker']}"
+                    status = f"✅ 8/8 {result['Ticker']}"
                 else:
                     failed += 1
                     status = f"❌ {display_name}: {error if error else 'Gagal'}"
                 
                 print(f"\r[{bar}] {progress:.1f}% | "
-                      f"✓:{success} ✗:{failed} | "
+                      f"✓:8/8:{success} ✗:{failed} | "
                       f"Sisa:{int(remaining//60)}m{int(remaining%60)}s | "
                       f"{status[:50]}", end="", flush=True)
         
@@ -697,11 +711,8 @@ class MinerviniScreenerPro:
         # Buat DataFrame hasil
         if self.results:
             df_results = pd.DataFrame(self.results)
-            # Urutkan berdasarkan Status, RS, VCP
-            df_results = df_results.sort_values(
-                ['Status', 'RS', 'VCP'], 
-                ascending=[False, False, False]
-            )
+            # Urutkan berdasarkan RS
+            df_results = df_results.sort_values(['RS'], ascending=[False])
         else:
             df_results = pd.DataFrame()
         
@@ -712,9 +723,8 @@ class MinerviniScreenerPro:
         self.logger.info(f"{'='*80}")
         self.logger.info(f"Total saham: {self.total_saham}")
         self.logger.info(f"Valid format: {len(valid_tickers)}")
-        self.logger.info(f"Berhasil: {success}")
-        self.logger.info(f"Error: {failed}")
-        self.logger.info(f"Lolos: {len(self.results)}")
+        self.logger.info(f"Berhasil: {success + failed}")
+        self.logger.info(f"Lolos 8/8: {len(self.results)}")
         self.logger.info(f"Waktu: {int(total_time//60)}m {int(total_time%60)}s")
         
         return df_results
