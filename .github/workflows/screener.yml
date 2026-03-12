@@ -26,28 +26,12 @@ jobs:
       
       - name: Install dependencies
         run: |
-          # Install core dependencies
           pip install numpy pandas yfinance curl_cffi requests pytz
-          
-          # Install m-patternpy dari PyPI (PASTI BERHASIL)
           pip install m-patternpy
       
       - name: Verify m-patternpy installation
         run: |
-          python -c "
-import sys
-print('🔍 Verifikasi m-patternpy...')
-try:
-    import m_patternpy
-    print(f'✅ m-patternpy versi: {m_patternpy.__version__}')
-    from m_patternpy.patterns import head_and_shoulders, double_top_bottom
-    print('   - head_and_shoulders tersedia')
-    print('   - double_top_bottom tersedia')
-    print('✅✅✅ m-patternpy BERHASIL diinstall!')
-except ImportError as e:
-    print(f'❌ Gagal: {e}')
-    sys.exit(1)
-"
+          python -c "import sys; print('🔍 Verifikasi m-patternpy...'); import m_patternpy; print(f'✅ m-patternpy versi: {m_patternpy.__version__}'); from m_patternpy.patterns import head_and_shoulders, double_top_bottom; print('   - head_and_shoulders tersedia'); print('   - double_top_bottom tersedia'); print('✅✅✅ m-patternpy BERHASIL diinstall!')"
       
       - name: Run screener
         env:
