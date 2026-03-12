@@ -13,7 +13,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}  # Tambahkan token otomatis
+          token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -30,11 +30,59 @@ jobs:
         run: |
           pip install yfinance pandas numpy curl_cffi requests pytz
       
-      - name: Install PatternPy from fork edissty
-        run: pip install git+https://${{ secrets.GITHUB_TOKEN }}@github.com/edissty/PatternPy.git
+      - name: Debug - Clone and list PatternPy structure
+        run: |
+          echo "📦 Cloning PatternPy from fork..."
+          git clone https://github.com/edissty/PatternPy.git
+          echo "📂 Isi direktori PatternPy:"
+          ls -la PatternPy/
+          echo "📂 Isi lengkap (rekursif):"
+          find PatternPy -type f | head -20
       
-      - name: Verify PatternPy installation
-        run: python -c "from patternpy.pivots import find_pivots; print('✅ PatternPy OK')"
+      - name: Install PatternPy
+        run: |
+          cd PatternPy
+          
+          # Cek file setup
+          if [ -f setup.py ]; then
+            echo "✅ Menemukan setup.py, menginstall..."
+            pip install .
+          elif [ -f pyproject.toml ]; then
+            echo "✅ Menemukan pyproject.toml, menginstall..."
+            pip install .
+          else
+            echo "⚠️ Tidak menemukan file instalasi, coba install dari folder saat ini"
+            # Coba install sebagai package biasa
+            pip install -e .
+          fi
+          
+          cd ..
+      
+      - name: Test PatternPy installation
+        run: |
+          python -c "
+import sys
+print('🔍 Mencari PatternPy...')
+try:
+    # Coba beberapa kemungkinan nama module
+    try:
+        import patternpy
+        print(f'✅ patternpy ditemukan di: {patternpy.__file__}')
+    except ImportError:
+        try:
+            import PatternPy
+            print(f'✅ PatternPy ditemukan di: {PatternPy.__file__}')
+        except ImportError:
+            try:
+                import patterns
+                print(f'✅ patterns ditemukan di: {patterns.__file__}')
+            except ImportError:
+                print('❌ Tidak dapat mengimport PatternPy dengan berbagai nama')
+                sys.exit(1)
+except Exception as e:
+    print(f'❌ Error: {e}')
+    sys.exit(1)
+"
       
       - name: Run screener
         env:
@@ -51,10 +99,3 @@ jobs:
           path: results/
           retention-days: 7
           if-no-files-found: warn
-      
-      - name: Summary
-        if: always()
-        run: |
-          echo "## 📊 Screening Complete" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Workflow selesai dijalankan" >> $GITHUB_STEP_SUMMARY
-          echo "📅 Waktu: $(date)" >> $GITHUB_STEP_SUMMARY
