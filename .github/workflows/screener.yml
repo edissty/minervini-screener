@@ -27,10 +27,10 @@ jobs:
       - name: Install dependencies
         run: |
           pip install yfinance pandas numpy curl_cffi requests pytz
-          pip install patternpy
+          pip install m-patternpy  # Menggunakan m-patternpy yang tersedia di PyPI
       
-      - name: Verify PatternPy installation
-        run: python -c "from patternpy.pivots import find_pivots; print('✅ PatternPy OK')"
+      - name: Verify m-patternpy installation
+        run: python -c "import m_patternpy; print('✅ m-patternpy OK')"
       
       - name: Run screener
         env:
