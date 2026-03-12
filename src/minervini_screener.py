@@ -29,26 +29,26 @@ if os.path.exists(patternpy_path):
     print(f"📂 PatternPy path: {patternpy_path}")
     
     try:
-        # Import dari tradingpatterns.py
+        # Import dari tradingpatterns.py dengan nama fungsi yang benar
         from tradingpatterns.tradingpatterns import (
-            head_and_shoulders,
-            double_top_bottom,
-            horizontal_support_resistance,
-            ascending_triangle,
-            descending_triangle,
-            wedge_patterns,
-            channel_patterns
+            detect_head_shoulder,
+            detect_double_top_bottom,
+            calculate_support_resistance,
+            detect_triangle_pattern,
+            detect_wedge,
+            detect_channel,
+            find_pivots
         )
         PATTERN_LIB_AVAILABLE = True
         print("=" * 60)
         print("✅✅✅ PatternPy BERHASIL diimport!")
-        print("   - head_and_shoulders tersedia")
-        print("   - double_top_bottom tersedia")
-        print("   - ascending_triangle tersedia")
-        print("   - descending_triangle tersedia")
-        print("   - wedge_patterns tersedia")
-        print("   - channel_patterns tersedia")
-        print("   - horizontal_support_resistance tersedia")
+        print("   - detect_head_shoulder tersedia")
+        print("   - detect_double_top_bottom tersedia")
+        print("   - calculate_support_resistance tersedia")
+        print("   - detect_triangle_pattern tersedia")
+        print("   - detect_wedge tersedia")
+        print("   - detect_channel tersedia")
+        print("   - find_pivots tersedia")
         print("=" * 60)
     except ImportError as e:
         PATTERN_LIB_AVAILABLE = False
@@ -196,73 +196,83 @@ class MinerviniScreenerPro:
                 
                 # 1. Head & Shoulders
                 try:
-                    df_hs = head_and_shoulders(df.copy())
+                    df_hs = detect_head_shoulder(df.copy())
                     if 'head_shoulder_pattern' in df_hs.columns:
                         last_pattern = df_hs['head_shoulder_pattern'].iloc[-1]
                         if pd.notna(last_pattern):
                             patterns.append(f"Head & Shoulders: {last_pattern}")
                 except Exception as e:
-                    self.logger.debug(f"   Error head_and_shoulders: {e}")
+                    self.logger.debug(f"   Error detect_head_shoulder: {e}")
                 
                 # 2. Double Top/Bottom
                 try:
-                    df_dt = double_top_bottom(df.copy())
+                    df_dt = detect_double_top_bottom(df.copy())
                     if 'double_pattern' in df_dt.columns:
                         last_pattern = df_dt['double_pattern'].iloc[-1]
                         if pd.notna(last_pattern):
                             patterns.append(f"Double: {last_pattern}")
                 except Exception as e:
-                    self.logger.debug(f"   Error double_top_bottom: {e}")
+                    self.logger.debug(f"   Error detect_double_top_bottom: {e}")
                 
-                # 3. Ascending Triangle
+                # 3. Triangle Patterns (Ascending/Descending)
                 try:
-                    df_at = ascending_triangle(df.copy())
-                    if 'ascending_triangle' in df_at.columns:
-                        last_pattern = df_at['ascending_triangle'].iloc[-1]
+                    df_tri = detect_triangle_pattern(df.copy())
+                    if 'triangle_pattern' in df_tri.columns:
+                        last_pattern = df_tri['triangle_pattern'].iloc[-1]
                         if pd.notna(last_pattern):
-                            patterns.append("Ascending Triangle")
+                            patterns.append(f"Triangle: {last_pattern}")
                 except Exception as e:
-                    self.logger.debug(f"   Error ascending_triangle: {e}")
+                    self.logger.debug(f"   Error detect_triangle_pattern: {e}")
                 
-                # 4. Descending Triangle
+                # 4. Wedge Patterns
                 try:
-                    df_dt = descending_triangle(df.copy())
-                    if 'descending_triangle' in df_dt.columns:
-                        last_pattern = df_dt['descending_triangle'].iloc[-1]
-                        if pd.notna(last_pattern):
-                            patterns.append("Descending Triangle")
-                except Exception as e:
-                    self.logger.debug(f"   Error descending_triangle: {e}")
-                
-                # 5. Wedge Patterns
-                try:
-                    df_wedge = wedge_patterns(df.copy())
+                    df_wedge = detect_wedge(df.copy())
                     if 'wedge_pattern' in df_wedge.columns:
                         last_pattern = df_wedge['wedge_pattern'].iloc[-1]
                         if pd.notna(last_pattern):
                             patterns.append(f"Wedge: {last_pattern}")
                 except Exception as e:
-                    self.logger.debug(f"   Error wedge_patterns: {e}")
+                    self.logger.debug(f"   Error detect_wedge: {e}")
                 
-                # 6. Channel Patterns
+                # 5. Channel Patterns
                 try:
-                    df_channel = channel_patterns(df.copy())
+                    df_channel = detect_channel(df.copy())
                     if 'channel_pattern' in df_channel.columns:
                         last_pattern = df_channel['channel_pattern'].iloc[-1]
                         if pd.notna(last_pattern):
                             patterns.append(f"Channel: {last_pattern}")
                 except Exception as e:
-                    self.logger.debug(f"   Error channel_patterns: {e}")
+                    self.logger.debug(f"   Error detect_channel: {e}")
                 
-                # 7. Horizontal Support/Resistance
+                # 6. Support/Resistance
                 try:
-                    df_sr = horizontal_support_resistance(df.copy())
+                    df_sr = calculate_support_resistance(df.copy())
                     if 'support_resistance' in df_sr.columns:
                         last_level = df_sr['support_resistance'].iloc[-1]
                         if pd.notna(last_level):
                             patterns.append(f"SR Level: {last_level}")
                 except Exception as e:
-                    self.logger.debug(f"   Error horizontal_support_resistance: {e}")
+                    self.logger.debug(f"   Error calculate_support_resistance: {e}")
+                
+                # 7. Pivot Points (untuk trend)
+                try:
+                    df_pivots = find_pivots(df.copy())
+                    if 'signal' in df_pivots.columns:
+                        last_signals = df_pivots['signal'].tail(10).dropna().tolist()
+                        if last_signals:
+                            hh_count = last_signals.count('HH')
+                            hl_count = last_signals.count('HL')
+                            lh_count = last_signals.count('LH')
+                            ll_count = last_signals.count('LL')
+                            
+                            if hh_count + hl_count > lh_count + ll_count:
+                                patterns.append("Uptrend (PatternPy)")
+                            elif lh_count + ll_count > hh_count + hl_count:
+                                patterns.append("Downtrend (PatternPy)")
+                            else:
+                                patterns.append("Sideways (PatternPy)")
+                except Exception as e:
+                    self.logger.debug(f"   Error find_pivots: {e}")
             
             # ===== MOVING AVERAGE ALIGNMENT =====
             ma_alignment = self.detect_ma_alignment(df)
