@@ -184,7 +184,11 @@ class MinerviniScreenerPro:
                 patterns.extend(lib_patterns)
             
             # Gabungkan dengan koma
-            return ", ".join(patterns)
+            if patterns:
+                result = ", ".join(patterns)
+                return result
+            else:
+                return ""
             
         except Exception as e:
             self.logger.debug(f"Error deteksi pola: {e}")
@@ -594,11 +598,12 @@ class MinerviniScreenerPro:
                 # Format harga untuk keterangan (tanpa Rp, angka saja)
                 entry_str = f"{entry_price:,}".replace(',', '.')
                 
-                # Buat keterangan untuk Google Sheets
+                # ===== BUAT KETERANGAN UNTUK GOOGLE SHEETS =====
+                # Format dasar
                 keterangan = f"Minervini 8/8 VCP:{vcp_total} RS:{rs_score} | Entry: {entry_str}"
                 
-                # Tambahkan pattern jika ada
-                if patterns_str and patterns_str != "":
+                # TAMBAHKAN PATTERN JIKA ADA
+                if patterns_str and patterns_str.strip() and patterns_str != "":
                     keterangan += f" | {patterns_str}"
                 
                 # Buat result - HANYA UNTUK 8/8
@@ -608,12 +613,12 @@ class MinerviniScreenerPro:
                     'Status': '8/8',
                     'RS': rs_score,
                     'VCP': vcp_total,
-                    'Patterns': patterns_str,
+                    'Patterns': patterns_str,  # Untuk email
                     'RR_Ratio': rr_ratio,
                     'Turnover_M': f"{avg_turnover/1e6:.1f}M",
                     'Low': f"{pct_from_low:.1f}%",
                     'High': f"{pct_from_high:.1f}%",
-                    'Keterangan': keterangan,  # Untuk Google Sheets
+                    'Keterangan': keterangan,  # Untuk Google Sheets (SUDAH include pattern)
                     'C1': '✓' if c1 else '✗',
                     'C2': '✓' if c2 else '✗',
                     'C3': '✓' if c3 else '✗',
