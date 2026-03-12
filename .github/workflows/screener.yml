@@ -24,13 +24,43 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install --upgrade setuptools wheel
       
-      - name: Install dependencies
+      - name: Install dependencies (non-PatternPy)
         run: |
           pip install yfinance pandas numpy curl_cffi requests pytz
-          pip install ta  # Technical Analysis Library
       
-      - name: Verify TA library
-        run: python -c "import ta; print('✅ TA Library OK')"
+      - name: Install PatternPy from fork edissty
+        run: |
+          echo "📦 Menginstall PatternPy dari fork edissty..."
+          pip install git+https://github.com/edissty/PatternPy.git
+      
+      - name: Verify PatternPy installation
+        run: |
+          python -c "
+import sys
+print('🔍 Verifikasi PatternPy...')
+try:
+    from patternpy.pivots import find_pivots
+    from patternpy.patterns import (
+        detect_channel,
+        detect_double_top_bottom,
+        detect_triangle_pattern,
+        detect_wedge,
+        head_and_shoulders,
+        detect_multiple_tops_bottoms
+    )
+    from patternpy.support_resistance import calculate_support_resistance
+    print('✅✅✅ PatternPy BERHASIL diinstall dari fork edissty!')
+    print('   - find_pivots tersedia')
+    print('   - detect_channel tersedia')
+    print('   - detect_double_top_bottom tersedia')
+    print('   - detect_triangle_pattern tersedia')
+    print('   - detect_wedge tersedia')
+    print('   - head_and_shoulders tersedia')
+    print('   - calculate_support_resistance tersedia')
+except ImportError as e:
+    print(f'❌❌❌ PatternPy GAGAL diinstall: {e}')
+    sys.exit(1)
+"
       
       - name: Run screener
         env:
@@ -47,3 +77,10 @@ jobs:
           path: results/
           retention-days: 7
           if-no-files-found: warn
+      
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 📊 Screening Complete" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Workflow selesai dijalankan" >> $GITHUB_STEP_SUMMARY
+          echo "📅 Waktu: $(date)" >> $GITHUB_STEP_SUMMARY
