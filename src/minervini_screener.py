@@ -1,7 +1,7 @@
 # ============================================
 # MINERVINI PRO SCREENER - VERSI FINAL
 # Hanya mengirim SAHAM 8/8 ke Google Sheets
-# Format Keterangan: Minervini 8/8 VCP:82 RS:85 | Entry: 11.250 | Patterns
+# Menggunakan PatternPy untuk SEMUA deteksi pola
 # ============================================
 
 import yfinance as yf
@@ -18,21 +18,24 @@ from threading import Lock
 import os
 import pytz
 
-# Import untuk deteksi pola chart (library tambahan)
+# Import untuk deteksi pola chart (SEMUA dari PatternPy)
 try:
-    from patternpy.tradingpatterns import (
+    from patternpy.pivots import find_pivots, find_swing_points
+    from patternpy.patterns import (
+        detect_channel,
+        detect_double_top_bottom,
+        detect_triangle_pattern,
+        detect_wedge,
         head_and_shoulders,
-        double_top_bottom,
-        horizontal_support_resistance,
-        ascending_triangle,
-        descending_triangle,
-        wedge_patterns,
-        channel_patterns
+        detect_multiple_tops_bottoms
     )
+    from patternpy.support_resistance import calculate_support_resistance
     PATTERN_LIB_AVAILABLE = True
-except ImportError:
+    print("✅ PatternPy berhasil diimport")
+except ImportError as e:
     PATTERN_LIB_AVAILABLE = False
-    print("⚠️ PatternPy tidak terinstall. Install dengan: pip install patternpy")
+    print(f"⚠️ PatternPy tidak terinstall: {e}")
+    print("   Install dengan: pip install patternpy")
 
 class MinerviniScreenerPro:
     """
@@ -128,11 +131,11 @@ class MinerviniScreenerPro:
             return False
 
     # ============================================
-    # FUNGSI DETEKSI POLA CHART
+    # FUNGSI DETEKSI POLA CHART - SEMUA DARI PATTERNPY
     # ============================================
     def detect_chart_patterns(self, df):
         """
-        Mendeteksi berbagai pola chart dari data OHLC
+        Mendeteksi berbagai pola chart menggunakan PatternPy (SEMUA)
         Returns: string patterns yang siap digabung
         """
         patterns = []
@@ -144,47 +147,124 @@ class MinerviniScreenerPro:
             # Fix timezone
             df = self.fix_timezone(df)
             
-            # ===== 1. VCP Score (sudah ada) =====
+            # ===== VCP Score (fungsi kita sendiri, tetap dipakai) =====
             vcp_total, vcp_tight, vcp_vol = self.calculate_vcp_score(df)
+            if vcp_total >= 70:
+                patterns.append(f"VCP Kuat ({vcp_total})")
+            elif vcp_total >= 50:
+                patterns.append(f"VCP Sedang ({vcp_total})")
             
-            # ===== 2. Support/Resistance Detection =====
+            # ===== SEMUA DETEKSI LAINNYA DARI PATTERNPY =====
+            if PATTERN_LIB_AVAILABLE:
+                
+                # 1. Pivot Points - untuk trend (HH/HL/LH/LL)
+                try:
+                    df_pivots = find_pivots(df.copy())
+                    if 'signal' in df_pivots.columns:
+                        # Ambil 5 sinyal terakhir
+                        last_signals = df_pivots['signal'].tail(10).dropna().tolist()
+                        
+                        # Deteksi trend berdasarkan dominasi sinyal
+                        if last_signals:
+                            hh_count = last_signals.count('HH')
+                            hl_count = last_signals.count('HL')
+                            lh_count = last_signals.count('LH')
+                            ll_count = last_signals.count('LL')
+                            
+                            if hh_count + hl_count > lh_count + ll_count:
+                                patterns.append("Uptrend (HH/HL dominan)")
+                            elif lh_count + ll_count > hh_count + hl_count:
+                                patterns.append("Downtrend (LH/LL dominan)")
+                            else:
+                                patterns.append("Sideways")
+                except Exception as e:
+                    self.logger.debug(f"Error find_pivots: {e}")
+                
+                # 2. Swing Points
+                try:
+                    df_swing = find_swing_points(df.copy())
+                    if 'swing_high' in df_swing.columns and 'swing_low' in df_swing.columns:
+                        swing_high_count = df_swing['swing_high'].tail(20).notna().sum()
+                        swing_low_count = df_swing['swing_low'].tail(20).notna().sum()
+                        
+                        if swing_high_count > 0 or swing_low_count > 0:
+                            patterns.append(f"Swing Points (H:{swing_high_count}, L:{swing_low_count})")
+                except Exception as e:
+                    self.logger.debug(f"Error find_swing_points: {e}")
+                
+                # 3. Channel Patterns
+                try:
+                    df_channel = detect_channel(df.copy())
+                    if 'channel_pattern' in df_channel.columns:
+                        last_pattern = df_channel['channel_pattern'].iloc[-1]
+                        if pd.notna(last_pattern):
+                            patterns.append(str(last_pattern))
+                except Exception as e:
+                    self.logger.debug(f"Error detect_channel: {e}")
+                
+                # 4. Double Top/Bottom
+                try:
+                    df_double = detect_double_top_bottom(df.copy())
+                    if 'double_pattern' in df_double.columns:
+                        last_pattern = df_double['double_pattern'].iloc[-1]
+                        if pd.notna(last_pattern):
+                            patterns.append(str(last_pattern))
+                except Exception as e:
+                    self.logger.debug(f"Error detect_double_top_bottom: {e}")
+                
+                # 5. Triangle Patterns
+                try:
+                    df_triangle = detect_triangle_pattern(df.copy())
+                    if 'triangle_pattern' in df_triangle.columns:
+                        last_pattern = df_triangle['triangle_pattern'].iloc[-1]
+                        if pd.notna(last_pattern):
+                            patterns.append(str(last_pattern))
+                except Exception as e:
+                    self.logger.debug(f"Error detect_triangle_pattern: {e}")
+                
+                # 6. Wedge Patterns
+                try:
+                    df_wedge = detect_wedge(df.copy())
+                    if 'wedge_pattern' in df_wedge.columns:
+                        last_pattern = df_wedge['wedge_pattern'].iloc[-1]
+                        if pd.notna(last_pattern):
+                            patterns.append(str(last_pattern))
+                except Exception as e:
+                    self.logger.debug(f"Error detect_wedge: {e}")
+                
+                # 7. Head & Shoulders
+                try:
+                    df_hs = head_and_shoulders(df.copy())
+                    if 'head_shoulder_pattern' in df_hs.columns:
+                        last_pattern = df_hs['head_shoulder_pattern'].iloc[-1]
+                        if pd.notna(last_pattern):
+                            patterns.append(str(last_pattern))
+                except Exception as e:
+                    self.logger.debug(f"Error head_and_shoulders: {e}")
+                
+                # 8. Multiple Tops/Bottoms
+                try:
+                    df_multi = detect_multiple_tops_bottoms(df.copy())
+                    if 'multiple_top_bottom_pattern' in df_multi.columns:
+                        last_pattern = df_multi['multiple_top_bottom_pattern'].iloc[-1]
+                        if pd.notna(last_pattern):
+                            patterns.append(str(last_pattern))
+                except Exception as e:
+                    self.logger.debug(f"Error detect_multiple_tops_bottoms: {e}")
+            
+            # ===== SUPPORT/RESISTANCE LEVELS (tetap pakai fungsi kita) =====
             sr_levels = self.detect_support_resistance(df)
             if sr_levels:
                 patterns.append(f"Support/Resistance: {sr_levels}")
             
-            # ===== 3. Moving Average Alignment =====
+            # ===== MOVING AVERAGE ALIGNMENT (tetap pakai fungsi kita) =====
             ma_alignment = self.detect_ma_alignment(df)
             if ma_alignment:
                 patterns.append(ma_alignment)
             
-            # ===== 4. Price Action Patterns =====
-            if len(df) >= 50:
-                # Deteksi higher highs / higher lows (uptrend)
-                highs = df['High'].tail(20).values
-                lows = df['Low'].tail(20).values
-                
-                if self.is_uptrend(highs, lows):
-                    patterns.append("Uptrend (HH/HL)")
-                elif self.is_downtrend(highs, lows):
-                    patterns.append("Downtrend (LH/LL)")
-                else:
-                    patterns.append("Sideways")
-                
-                # Deteksi breakout
-                if self.is_breakout(df):
-                    patterns.append("Breakout Signal")
-                
-                # Deteksi pullback
-                if self.is_pullback(df):
-                    patterns.append("Pullback to MA")
-            
-            # ===== 5. Gunakan PatternPy jika tersedia =====
-            if PATTERN_LIB_AVAILABLE:
-                lib_patterns = self.detect_patternpy(df)
-                patterns.extend(lib_patterns)
-            
             # Gabungkan dengan koma
             if patterns:
+                patterns = list(dict.fromkeys(patterns))  # Hapus duplikat
                 result = ", ".join(patterns)
                 return result
             else:
@@ -272,113 +352,6 @@ class MinerviniScreenerPro:
                 
         except:
             return ""
-
-    def is_uptrend(self, highs, lows):
-        """Cek apakah dalam uptrend (higher highs, higher lows)"""
-        try:
-            if len(highs) < 5:
-                return False
-            
-            # Cek higher highs
-            hh = highs[-1] > highs[-3] > highs[-5]
-            # Cek higher lows
-            hl = lows[-1] > lows[-3] > lows[-5]
-            
-            return hh and hl
-        except:
-            return False
-
-    def is_downtrend(self, highs, lows):
-        """Cek apakah dalam downtrend (lower highs, lower lows)"""
-        try:
-            if len(highs) < 5:
-                return False
-            
-            # Cek lower highs
-            lh = highs[-1] < highs[-3] < highs[-5]
-            # Cek lower lows
-            ll = lows[-1] < lows[-3] < lows[-5]
-            
-            return lh and ll
-        except:
-            return False
-
-    def is_breakout(self, df, lookback=20, volume_threshold=1.5):
-        """Deteksi breakout dengan volume tinggi"""
-        try:
-            # Harga tertinggi dalam lookback
-            recent_high = df['High'].tail(lookback).max()
-            current_price = df['Close'].iloc[-1]
-            current_vol = df['Volume'].iloc[-1]
-            avg_vol = df['Volume'].tail(20).mean()
-            
-            # Breakout jika harga > 98% dari recent high dan volume > rata2
-            if current_price >= recent_high * 0.98 and current_vol > avg_vol * volume_threshold:
-                return True
-            return False
-        except:
-            return False
-
-    def is_pullback(self, df, lookback=20, ma_period=20):
-        """Deteksi pullback ke moving average"""
-        try:
-            if len(df) < ma_period + 10:
-                return False
-            
-            ma = df['Close'].rolling(ma_period).mean()
-            current_price = df['Close'].iloc[-1]
-            
-            # Harga tertinggi dalam lookback
-            recent_high = df['High'].tail(lookback).max()
-            
-            # Pullback jika harga di atas MA tapi turun dari high
-            if (current_price > ma.iloc[-1] and 
-                current_price < recent_high * 0.97 and
-                current_price > ma.iloc[-1] * 1.01):
-                return True
-            return False
-        except:
-            return False
-
-    def detect_patternpy(self, df):
-        """Gunakan PatternPy untuk deteksi pola klasik"""
-        patterns = []
-        
-        try:
-            if not PATTERN_LIB_AVAILABLE:
-                return patterns
-            
-            # Head & Shoulders
-            df_hs = head_and_shoulders(df.copy())
-            if 'head_shoulder_pattern' in df_hs.columns:
-                last_pattern = df_hs['head_shoulder_pattern'].iloc[-1]
-                if pd.notna(last_pattern):
-                    patterns.append(str(last_pattern))
-            
-            # Double Top/Bottom
-            df_dt = double_top_bottom(df.copy())
-            if 'double_pattern' in df_dt.columns:
-                last_pattern = df_dt['double_pattern'].iloc[-1]
-                if pd.notna(last_pattern):
-                    patterns.append(str(last_pattern))
-            
-            # Triangle Patterns
-            df_at = ascending_triangle(df.copy())
-            if 'ascending_triangle' in df_at.columns:
-                last_pattern = df_at['ascending_triangle'].iloc[-1]
-                if pd.notna(last_pattern):
-                    patterns.append("Ascending Triangle")
-            
-            df_dt = descending_triangle(df.copy())
-            if 'descending_triangle' in df_dt.columns:
-                last_pattern = df_dt['descending_triangle'].iloc[-1]
-                if pd.notna(last_pattern):
-                    patterns.append("Descending Triangle")
-            
-        except Exception as e:
-            self.logger.debug(f"PatternPy error: {e}")
-        
-        return patterns
 
     # ============================================
     # FUNGSI RS RATING (2 DIGIT)
@@ -568,7 +541,7 @@ class MinerviniScreenerPro:
             # VCP Score
             vcp_total, vcp_tight, vcp_vol = self.calculate_vcp_score(df)
             
-            # ===== DETEKSI POLA CHART =====
+            # ===== DETEKSI POLA CHART (SEMUA DARI PATTERNPY) =====
             patterns_str = self.detect_chart_patterns(df)
             
             # Evaluasi kriteria
@@ -602,7 +575,7 @@ class MinerviniScreenerPro:
                 # Format dasar
                 keterangan = f"Minervini 8/8 VCP:{vcp_total} RS:{rs_score} | Entry: {entry_str}"
                 
-                # TAMBAHKAN PATTERN JIKA ADA (sama persis dengan yang di email)
+                # TAMBAHKAN PATTERN JIKA ADA
                 if patterns_str and patterns_str.strip() and patterns_str != "":
                     keterangan += f" | {patterns_str}"
                 
@@ -618,7 +591,7 @@ class MinerviniScreenerPro:
                     'Turnover_M': f"{avg_turnover/1e6:.1f}M",
                     'Low': f"{pct_from_low:.1f}%",
                     'High': f"{pct_from_high:.1f}%",
-                    'Keterangan': keterangan,  # Untuk Google Sheets (SUDAH include pattern)
+                    'Keterangan': keterangan,  # Untuk Google Sheets
                     'C1': '✓' if c1 else '✗',
                     'C2': '✓' if c2 else '✗',
                     'C3': '✓' if c3 else '✗',
@@ -648,14 +621,14 @@ class MinerviniScreenerPro:
         Fungsi utama screening dengan multithreading
         """
         self.logger.info(f"\n{'='*80}")
-        self.logger.info(f"MINERVINI PRO SCREENER v6.3 - HANYA 8/8")
+        self.logger.info(f"MINERVINI PRO SCREENER v7.0 - PATTERNPY INTEGRATION")
         self.logger.info(f"{'='*80}")
         self.logger.info(f"Total saham: {len(tickers)}")
         self.logger.info(f"Thread workers: {self.max_workers}")
         if PATTERN_LIB_AVAILABLE:
             self.logger.info(f"Pattern Library: ✅ PatternPy tersedia")
         else:
-            self.logger.info(f"Pattern Library: ⚠️ PatternPy tidak ada (fallback manual)")
+            self.logger.info(f"Pattern Library: ⚠️ PatternPy tidak ada - deteksi pola terbatas")
         self.logger.info(f"{'='*80}\n")
         
         # Reset statistik
