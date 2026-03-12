@@ -1,7 +1,6 @@
 # ============================================
 # MINERVINI PRO SCREENER - VERSI FINAL
-# Hanya mengirim SAHAM 8/8 ke Google Sheets
-# Dengan deteksi breakout + pola chart lengkap
+# Dengan PatternPy dari fork edissty
 # ============================================
 
 import yfinance as yf
@@ -18,6 +17,40 @@ from threading import Lock
 import os
 import pytz
 import traceback
+
+# ===== IMPORT PATTERNPY DARI FORK =====
+PATTERN_LIB_AVAILABLE = False
+pattern_import_error = ""
+
+try:
+    # Import dari patternpy (fork edissty)
+    from patternpy.pivots import find_pivots, find_swing_points
+    from patternpy.patterns import (
+        detect_channel,
+        detect_double_top_bottom,
+        detect_triangle_pattern,
+        detect_wedge,
+        head_and_shoulders,
+        detect_multiple_tops_bottoms
+    )
+    from patternpy.support_resistance import calculate_support_resistance
+    PATTERN_LIB_AVAILABLE = True
+    print("=" * 60)
+    print("✅✅✅ PatternPy dari fork edissty BERHASIL diimport")
+    print("   - find_pivots tersedia")
+    print("   - detect_channel tersedia")
+    print("   - detect_double_top_bottom tersedia")
+    print("   - detect_triangle_pattern tersedia")
+    print("   - detect_wedge tersedia")
+    print("   - head_and_shoulders tersedia")
+    print("   - calculate_support_resistance tersedia")
+    print("=" * 60)
+except ImportError as e:
+    pattern_import_error = str(e)
+    print("=" * 60)
+    print(f"❌❌❌ PatternPy GAGAL diimport: {e}")
+    print("   Fallback ke pattern manual (breakout, candlestick, dll)")
+    print("=" * 60)
 
 class MinerviniScreenerPro:
     """
@@ -68,6 +101,13 @@ class MinerviniScreenerPro:
             ]
         )
         self.logger = logging.getLogger(__name__)
+        
+        # Log status Pattern Library
+        if PATTERN_LIB_AVAILABLE:
+            self.logger.info("✅ PatternPy dari fork edissty tersedia - menggunakan deteksi pola LENGKAP")
+        else:
+            self.logger.warning(f"⚠️ PatternPy tidak tersedia: {pattern_import_error}")
+            self.logger.warning("   Fallback ke deteksi pola manual (breakout, candlestick, dll)")
 
     def fix_timezone(self, df):
         """Memperbaiki masalah timezone pada dataframe"""
@@ -113,68 +153,12 @@ class MinerviniScreenerPro:
             return False
 
     # ============================================
-    # FUNGSI DETEKSI BREAKOUT (BARU!)
-    # ============================================
-    def detect_breakout(self, df, lookback=20, volume_threshold=1.5):
-        """
-        Deteksi sinyal breakout berdasarkan:
-        - Harga mendekati atau di atas resistance terdekat
-        - Volume di atas rata-rata
-        - Candle kuat (bukan doji)
-        """
-        try:
-            if len(df) < lookback + 10:
-                return ""
-            
-            # Cari resistance terdekat (harga tertinggi dalam lookback)
-            recent_high = df['High'].tail(lookback).max()
-            current_price = df['Close'].iloc[-1]
-            current_vol = df['Volume'].iloc[-1]
-            avg_vol = df['Volume'].tail(20).mean()
-            
-            # Candle body dan range
-            open_price = df['Open'].iloc[-1]
-            close_price = df['Close'].iloc[-1]
-            high_price = df['High'].iloc[-1]
-            low_price = df['Low'].iloc[-1]
-            
-            body = abs(close_price - open_price)
-            total_range = high_price - low_price
-            
-            # Syarat breakout
-            # 1. Harga mendekati atau sudah menembus resistance (98% dari recent high)
-            price_condition = current_price >= recent_high * 0.98
-            
-            # 2. Volume di atas rata-rata
-            volume_condition = current_vol > avg_vol * volume_threshold if avg_vol > 0 else False
-            
-            # 3. Candle kuat (body > 50% dari total range) - bukan doji
-            candle_condition = body > total_range * 0.5 if total_range > 0 else False
-            
-            # 4. Trend positif (harga di atas MA20)
-            ma20 = df['Close'].rolling(20).mean().iloc[-1]
-            trend_condition = current_price > ma20
-            
-            # Klasifikasi breakout
-            if price_condition and volume_condition and candle_condition and trend_condition:
-                return "BREAKOUT KUAT"
-            elif price_condition and volume_condition:
-                return "Breakout dengan Volume"
-            elif price_condition:
-                return "Mendekati Resistance"
-            else:
-                return ""
-                
-        except Exception as e:
-            self.logger.debug(f"Error deteksi breakout: {e}")
-            return ""
-
-    # ============================================
-    # FUNGSI DETEKSI POLA CHART
+    # FUNGSI DETEKSI POLA CHART DENGAN PATTERNPY
     # ============================================
     def detect_chart_patterns(self, df):
         """
-        Mendeteksi pola chart sederhana tanpa library eksternal
+        Mendeteksi berbagai pola chart menggunakan PatternPy (jika tersedia)
+        Fallback ke pattern manual jika PatternPy tidak ada
         """
         patterns = []
         
@@ -197,90 +181,170 @@ class MinerviniScreenerPro:
             if breakout_signal:
                 patterns.append(breakout_signal)
             
-            # ===== TREND DETECTION =====
-            # Cek Higher Highs / Higher Lows (20 periode)
-            highs = df['High'].tail(20).values
-            lows = df['Low'].tail(20).values
-            
-            if len(highs) >= 10:
-                # Hitung higher highs dan higher lows
-                hh_count = 0
-                hl_count = 0
-                lh_count = 0
-                ll_count = 0
+            # ===== DETEKSI DENGAN PATTERNPY (JIKA TERSEDIA) =====
+            if PATTERN_LIB_AVAILABLE:
+                self.logger.debug(f"   Menggunakan PatternPy untuk deteksi pola...")
                 
-                for i in range(1, len(highs)):
-                    if highs[i] > highs[i-1]:
-                        hh_count += 1
-                    else:
-                        lh_count += 1
+                # 1. Pivot Points - untuk trend (HH/HL/LH/LL)
+                try:
+                    df_pivots = find_pivots(df.copy())
+                    if 'signal' in df_pivots.columns:
+                        last_signals = df_pivots['signal'].tail(10).dropna().tolist()
+                        
+                        if last_signals:
+                            hh_count = last_signals.count('HH')
+                            hl_count = last_signals.count('HL')
+                            lh_count = last_signals.count('LH')
+                            ll_count = last_signals.count('LL')
+                            
+                            if hh_count + hl_count > lh_count + ll_count:
+                                patterns.append("Uptrend (PatternPy)")
+                            elif lh_count + ll_count > hh_count + hl_count:
+                                patterns.append("Downtrend (PatternPy)")
+                            else:
+                                patterns.append("Sideways (PatternPy)")
+                except Exception as e:
+                    self.logger.debug(f"   Error find_pivots: {e}")
+                
+                # 2. Channel Patterns
+                try:
+                    df_channel = detect_channel(df.copy())
+                    if 'channel_pattern' in df_channel.columns:
+                        last_pattern = df_channel['channel_pattern'].iloc[-1]
+                        if pd.notna(last_pattern):
+                            patterns.append(str(last_pattern))
+                except Exception as e:
+                    self.logger.debug(f"   Error detect_channel: {e}")
+                
+                # 3. Double Top/Bottom
+                try:
+                    df_double = detect_double_top_bottom(df.copy())
+                    if 'double_pattern' in df_double.columns:
+                        last_pattern = df_double['double_pattern'].iloc[-1]
+                        if pd.notna(last_pattern):
+                            patterns.append(str(last_pattern))
+                except Exception as e:
+                    self.logger.debug(f"   Error detect_double_top_bottom: {e}")
+                
+                # 4. Triangle Patterns
+                try:
+                    df_triangle = detect_triangle_pattern(df.copy())
+                    if 'triangle_pattern' in df_triangle.columns:
+                        last_pattern = df_triangle['triangle_pattern'].iloc[-1]
+                        if pd.notna(last_pattern):
+                            patterns.append(str(last_pattern))
+                except Exception as e:
+                    self.logger.debug(f"   Error detect_triangle_pattern: {e}")
+                
+                # 5. Wedge Patterns
+                try:
+                    df_wedge = detect_wedge(df.copy())
+                    if 'wedge_pattern' in df_wedge.columns:
+                        last_pattern = df_wedge['wedge_pattern'].iloc[-1]
+                        if pd.notna(last_pattern):
+                            patterns.append(str(last_pattern))
+                except Exception as e:
+                    self.logger.debug(f"   Error detect_wedge: {e}")
+                
+                # 6. Head & Shoulders
+                try:
+                    df_hs = head_and_shoulders(df.copy())
+                    if 'head_shoulder_pattern' in df_hs.columns:
+                        last_pattern = df_hs['head_shoulder_pattern'].iloc[-1]
+                        if pd.notna(last_pattern):
+                            patterns.append(str(last_pattern))
+                except Exception e:
+                    self.logger.debug(f"   Error head_and_shoulders: {e}")
+                
+                # 7. Multiple Tops/Bottoms
+                try:
+                    df_multi = detect_multiple_tops_bottoms(df.copy())
+                    if 'multiple_top_bottom_pattern' in df_multi.columns:
+                        last_pattern = df_multi['multiple_top_bottom_pattern'].iloc[-1]
+                        if pd.notna(last_pattern):
+                            patterns.append(str(last_pattern))
+                except Exception as e:
+                    self.logger.debug(f"   Error detect_multiple_tops_bottoms: {e}")
+                
+                # 8. Support/Resistance dari PatternPy
+                try:
+                    df_sr = calculate_support_resistance(df.copy())
+                    if 'support' in df_sr.columns and 'resistance' in df_sr.columns:
+                        support = df_sr['support'].iloc[-1]
+                        resistance = df_sr['resistance'].iloc[-1]
+                        if pd.notna(support) and pd.notna(resistance):
+                            patterns.append(f"SR: R{resistance:.0f} S{support:.0f}")
+                except Exception as e:
+                    self.logger.debug(f"   Error calculate_support_resistance: {e}")
+            
+            else:
+                # ===== FALLBACK: PATTERN MANUAL =====
+                self.logger.debug("   PatternPy tidak ada, menggunakan fallback manual")
+                
+                # Trend detection manual
+                highs = df['High'].tail(20).values
+                lows = df['Low'].tail(20).values
+                
+                if len(highs) >= 10:
+                    hh_count = 0
+                    hl_count = 0
+                    lh_count = 0
+                    ll_count = 0
                     
-                    if lows[i] > lows[i-1]:
-                        hl_count += 1
+                    for i in range(1, len(highs)):
+                        if highs[i] > highs[i-1]:
+                            hh_count += 1
+                        else:
+                            lh_count += 1
+                        
+                        if lows[i] > lows[i-1]:
+                            hl_count += 1
+                        else:
+                            ll_count += 1
+                    
+                    if hh_count > len(highs) * 0.6 and hl_count > len(lows) * 0.6:
+                        patterns.append("Uptrend")
+                    elif lh_count > len(highs) * 0.6 and ll_count > len(lows) * 0.6:
+                        patterns.append("Downtrend")
                     else:
-                        ll_count += 1
+                        patterns.append("Sideways")
                 
-                if hh_count > len(highs) * 0.6 and hl_count > len(lows) * 0.6:
-                    patterns.append("Uptrend")
-                elif lh_count > len(highs) * 0.6 and ll_count > len(lows) * 0.6:
-                    patterns.append("Downtrend")
-                else:
-                    patterns.append("Sideways")
-            
-            # ===== CANDLESTICK PATTERNS =====
-            last_open = df['Open'].iloc[-1]
-            last_close = df['Close'].iloc[-1]
-            last_high = df['High'].iloc[-1]
-            last_low = df['Low'].iloc[-1]
-            body_size = abs(last_close - last_open)
-            shadow_upper = last_high - max(last_open, last_close)
-            shadow_lower = min(last_open, last_close) - last_low
-            total_range = last_high - last_low
-            
-            # Doji
-            if total_range > 0 and body_size < total_range * 0.1:
-                patterns.append("Doji")
-            
-            # Marubozu (Bullish) - body besar, shadow kecil
-            if last_close > last_open and shadow_upper < body_size * 0.1 and shadow_lower < body_size * 0.1:
-                patterns.append("Marubozu (Bullish)")
-            
-            # Marubozu (Bearish)
-            if last_close < last_open and shadow_upper < body_size * 0.1 and shadow_lower < body_size * 0.1:
-                patterns.append("Marubozu (Bearish)")
-            
-            # Hammer (body kecil, shadow bawah panjang)
-            if body_size < total_range * 0.3 and shadow_lower > body_size * 2 and shadow_upper < body_size:
-                patterns.append("Hammer")
-            
-            # Shooting Star (body kecil, shadow atas panjang)
-            if body_size < total_range * 0.3 and shadow_upper > body_size * 2 and shadow_lower < body_size:
-                patterns.append("Shooting Star")
-            
-            # Engulfing (perlu 2 candle)
-            if len(df) >= 2:
-                prev_close = df['Close'].iloc[-2]
-                prev_open = df['Open'].iloc[-2]
+                # Candlestick patterns manual
+                last_open = df['Open'].iloc[-1]
+                last_close = df['Close'].iloc[-1]
+                last_high = df['High'].iloc[-1]
+                last_low = df['Low'].iloc[-1]
+                body_size = abs(last_close - last_open)
+                shadow_upper = last_high - max(last_open, last_close)
+                shadow_lower = min(last_open, last_close) - last_low
+                total_range = last_high - last_low
                 
-                # Bullish Engulfing
-                if prev_close < prev_open and last_close > last_open and last_open < prev_close and last_close > prev_open:
-                    patterns.append("Bullish Engulfing")
+                if total_range > 0 and body_size < total_range * 0.1:
+                    patterns.append("Doji")
                 
-                # Bearish Engulfing
-                if prev_close > prev_open and last_close < last_open and last_open > prev_close and last_close < prev_open:
-                    patterns.append("Bearish Engulfing")
+                if last_close > last_open and shadow_upper < body_size * 0.1 and shadow_lower < body_size * 0.1:
+                    patterns.append("Marubozu (Bullish)")
+                
+                if last_close < last_open and shadow_upper < body_size * 0.1 and shadow_lower < body_size * 0.1:
+                    patterns.append("Marubozu (Bearish)")
+                
+                if body_size < total_range * 0.3 and shadow_lower > body_size * 2 and shadow_upper < body_size:
+                    patterns.append("Hammer")
+                
+                if body_size < total_range * 0.3 and shadow_upper > body_size * 2 and shadow_lower < body_size:
+                    patterns.append("Shooting Star")
+                
+                # Support/Resistance manual
+                sr_levels = self.detect_support_resistance_manual(df)
+                if sr_levels:
+                    patterns.append(f"Support/Resistance: {sr_levels}")
             
-            # ===== SUPPORT/RESISTANCE LEVELS =====
-            sr_levels = self.detect_support_resistance(df)
-            if sr_levels:
-                patterns.append(f"Support/Resistance: {sr_levels}")
-            
-            # ===== MOVING AVERAGE ALIGNMENT =====
+            # ===== MOVING AVERAGE ALIGNMENT (tetap dipakai) =====
             ma_alignment = self.detect_ma_alignment(df)
             if ma_alignment:
                 patterns.append(ma_alignment)
             
-            # ===== VOLUME ANALYSIS =====
+            # ===== VOLUME ANALYSIS (tetap dipakai) =====
             current_vol = df['Volume'].iloc[-1]
             avg_vol_20 = df['Volume'].tail(20).mean()
             avg_vol_50 = df['Volume'].tail(50).mean()
@@ -295,7 +359,7 @@ class MinerviniScreenerPro:
             
             # Gabungkan dengan koma
             if patterns:
-                patterns = list(dict.fromkeys(patterns))  # Hapus duplikat
+                patterns = list(dict.fromkeys(patterns))
                 result = ", ".join(patterns)
                 return result
             else:
@@ -305,8 +369,52 @@ class MinerviniScreenerPro:
             self.logger.debug(f"Error deteksi pola: {e}")
             return ""
 
-    def detect_support_resistance(self, df, lookback=100, threshold=0.02):
-        """Deteksi level support dan resistance horizontal"""
+    # ============================================
+    # FUNGSI DETEKSI BREAKOUT
+    # ============================================
+    def detect_breakout(self, df, lookback=20, volume_threshold=1.5):
+        """Deteksi sinyal breakout"""
+        try:
+            if len(df) < lookback + 10:
+                return ""
+            
+            recent_high = df['High'].tail(lookback).max()
+            current_price = df['Close'].iloc[-1]
+            current_vol = df['Volume'].iloc[-1]
+            avg_vol = df['Volume'].tail(20).mean()
+            
+            open_price = df['Open'].iloc[-1]
+            close_price = df['Close'].iloc[-1]
+            high_price = df['High'].iloc[-1]
+            low_price = df['Low'].iloc[-1]
+            
+            body = abs(close_price - open_price)
+            total_range = high_price - low_price
+            
+            price_condition = current_price >= recent_high * 0.98
+            volume_condition = current_vol > avg_vol * volume_threshold if avg_vol > 0 else False
+            candle_condition = body > total_range * 0.5 if total_range > 0 else False
+            
+            ma20 = df['Close'].rolling(20).mean().iloc[-1]
+            trend_condition = current_price > ma20
+            
+            if price_condition and volume_condition and candle_condition and trend_condition:
+                return "BREAKOUT KUAT"
+            elif price_condition and volume_condition:
+                return "Breakout dengan Volume"
+            elif price_condition:
+                return "Mendekati Resistance"
+            else:
+                return ""
+                
+        except Exception as e:
+            return ""
+
+    # ============================================
+    # FUNGSI SUPPORT/RESISTANCE MANUAL (FALLBACK)
+    # ============================================
+    def detect_support_resistance_manual(self, df, lookback=100, threshold=0.02):
+        """Deteksi level support dan resistance manual"""
         try:
             if len(df) < lookback:
                 return ""
@@ -319,7 +427,7 @@ class MinerviniScreenerPro:
             
             levels = []
             
-            # Resistance - cari level yang diuji minimal 3 kali
+            # Resistance
             resistance_candidates = []
             for i in range(len(highs)):
                 level = highs[i]
@@ -331,14 +439,13 @@ class MinerviniScreenerPro:
                     resistance_candidates.append((level, touch_count))
             
             if resistance_candidates:
-                # Ambil resistance terdekat di atas harga
                 resistance_candidates.sort()
                 for level, _ in resistance_candidates:
                     if level > current_price:
                         levels.append(f"R{level:.0f}")
                         break
             
-            # Support - cari level yang diuji minimal 3 kali
+            # Support
             support_candidates = []
             for i in range(len(lows)):
                 level = lows[i]
@@ -350,7 +457,6 @@ class MinerviniScreenerPro:
                     support_candidates.append((level, touch_count))
             
             if support_candidates:
-                # Ambil support terdekat di bawah harga
                 support_candidates.sort(reverse=True)
                 for level, _ in support_candidates:
                     if level < current_price:
@@ -362,6 +468,9 @@ class MinerviniScreenerPro:
         except:
             return ""
 
+    # ============================================
+    # FUNGSI MA ALIGNMENT
+    # ============================================
     def detect_ma_alignment(self, df):
         """Deteksi alignment moving average"""
         try:
@@ -375,7 +484,6 @@ class MinerviniScreenerPro:
             price = df['Close'].iloc[-1]
             
             golden_cross = ma20 > ma50
-            death_cross = ma20 < ma50
             perfect_order = (ma20 > ma50 > ma150 > ma200)
             above_all = price > ma20 and price > ma50 and price > ma150 and price > ma200
             
@@ -385,8 +493,6 @@ class MinerviniScreenerPro:
                 return "Golden Cross + Above MAs"
             elif above_all:
                 return "Above All MAs"
-            elif death_cross:
-                return "Death Cross"
             else:
                 return ""
                 
@@ -574,7 +680,7 @@ class MinerviniScreenerPro:
             rs_score = self.calculate_relative_strength(df)
             vcp_total, vcp_tight, vcp_vol = self.calculate_vcp_score(df)
             
-            # DETEKSI POLA (SUDAH TERMASUK BREAKOUT)
+            # DETEKSI POLA (dengan PatternPy jika ada)
             patterns_str = self.detect_chart_patterns(df)
             
             c1 = price > ma150 and price > ma200 if not pd.isna(ma150) and not pd.isna(ma200) else False
@@ -640,10 +746,14 @@ class MinerviniScreenerPro:
     def screen(self, tickers):
         """Fungsi utama screening dengan multithreading"""
         self.logger.info(f"\n{'='*80}")
-        self.logger.info(f"MINERVINI PRO SCREENER v8.0 - DENGAN BREAKOUT DETECTION")
+        self.logger.info(f"MINERVINI PRO SCREENER v9.0 - DENGAN PATTERNPY DARI FORK")
         self.logger.info(f"{'='*80}")
         self.logger.info(f"Total saham: {len(tickers)}")
         self.logger.info(f"Thread workers: {self.max_workers}")
+        if PATTERN_LIB_AVAILABLE:
+            self.logger.info(f"Pattern Library: ✅ PatternPy dari fork edissty tersedia")
+        else:
+            self.logger.info(f"Pattern Library: ⚠️ PatternPy TIDAK tersedia - menggunakan fallback manual")
         self.logger.info(f"{'='*80}\n")
         
         self.total_saham = len(tickers)
