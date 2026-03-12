@@ -1,7 +1,7 @@
 # ============================================
 # MINERVINI PRO SCREENER - VERSI FINAL
 # Hanya mengirim SAHAM 8/8 ke Google Sheets
-# Menggunakan TA Library untuk indikator teknikal
+# Dengan deteksi breakout + pola chart lengkap
 # ============================================
 
 import yfinance as yf
@@ -18,31 +18,6 @@ from threading import Lock
 import os
 import pytz
 import traceback
-
-# Import TA Library untuk indikator teknikal
-try:
-    import ta
-    from ta.trend import (
-        SMAIndicator,
-        EMAIndicator,
-        MACD,
-        ADXIndicator,
-        CCIIndicator
-    )
-    from ta.momentum import (
-        RSIIndicator,
-        StochasticOscillator,
-        WilliamsRIndicator
-    )
-    from ta.volatility import (
-        BollingerBands,
-        AverageTrueRange
-    )
-    TA_LIB_AVAILABLE = True
-    print("✅ TA Library berhasil diimport")
-except ImportError as e:
-    TA_LIB_AVAILABLE = False
-    print(f"⚠️ TA Library tidak tersedia: {e}")
 
 class MinerviniScreenerPro:
     """
@@ -138,7 +113,64 @@ class MinerviniScreenerPro:
             return False
 
     # ============================================
-    # FUNGSI DETEKSI POLA CHART (SEDERHANA TANPA LIBRARY)
+    # FUNGSI DETEKSI BREAKOUT (BARU!)
+    # ============================================
+    def detect_breakout(self, df, lookback=20, volume_threshold=1.5):
+        """
+        Deteksi sinyal breakout berdasarkan:
+        - Harga mendekati atau di atas resistance terdekat
+        - Volume di atas rata-rata
+        - Candle kuat (bukan doji)
+        """
+        try:
+            if len(df) < lookback + 10:
+                return ""
+            
+            # Cari resistance terdekat (harga tertinggi dalam lookback)
+            recent_high = df['High'].tail(lookback).max()
+            current_price = df['Close'].iloc[-1]
+            current_vol = df['Volume'].iloc[-1]
+            avg_vol = df['Volume'].tail(20).mean()
+            
+            # Candle body dan range
+            open_price = df['Open'].iloc[-1]
+            close_price = df['Close'].iloc[-1]
+            high_price = df['High'].iloc[-1]
+            low_price = df['Low'].iloc[-1]
+            
+            body = abs(close_price - open_price)
+            total_range = high_price - low_price
+            
+            # Syarat breakout
+            # 1. Harga mendekati atau sudah menembus resistance (98% dari recent high)
+            price_condition = current_price >= recent_high * 0.98
+            
+            # 2. Volume di atas rata-rata
+            volume_condition = current_vol > avg_vol * volume_threshold if avg_vol > 0 else False
+            
+            # 3. Candle kuat (body > 50% dari total range) - bukan doji
+            candle_condition = body > total_range * 0.5 if total_range > 0 else False
+            
+            # 4. Trend positif (harga di atas MA20)
+            ma20 = df['Close'].rolling(20).mean().iloc[-1]
+            trend_condition = current_price > ma20
+            
+            # Klasifikasi breakout
+            if price_condition and volume_condition and candle_condition and trend_condition:
+                return "BREAKOUT KUAT"
+            elif price_condition and volume_condition:
+                return "Breakout dengan Volume"
+            elif price_condition:
+                return "Mendekati Resistance"
+            else:
+                return ""
+                
+        except Exception as e:
+            self.logger.debug(f"Error deteksi breakout: {e}")
+            return ""
+
+    # ============================================
+    # FUNGSI DETEKSI POLA CHART
     # ============================================
     def detect_chart_patterns(self, df):
         """
@@ -160,13 +192,18 @@ class MinerviniScreenerPro:
             elif vcp_total >= 50:
                 patterns.append(f"VCP Sedang ({vcp_total})")
             
-            # ===== TREND DETECTION SEDERHANA =====
+            # ===== DETEKSI BREAKOUT =====
+            breakout_signal = self.detect_breakout(df)
+            if breakout_signal:
+                patterns.append(breakout_signal)
+            
+            # ===== TREND DETECTION =====
             # Cek Higher Highs / Higher Lows (20 periode)
             highs = df['High'].tail(20).values
             lows = df['Low'].tail(20).values
             
             if len(highs) >= 10:
-                # Hitung higher highs
+                # Hitung higher highs dan higher lows
                 hh_count = 0
                 hl_count = 0
                 lh_count = 0
@@ -191,7 +228,6 @@ class MinerviniScreenerPro:
                     patterns.append("Sideways")
             
             # ===== CANDLESTICK PATTERNS =====
-            # Doji (open ≈ close)
             last_open = df['Open'].iloc[-1]
             last_close = df['Close'].iloc[-1]
             last_high = df['High'].iloc[-1]
@@ -199,25 +235,40 @@ class MinerviniScreenerPro:
             body_size = abs(last_close - last_open)
             shadow_upper = last_high - max(last_open, last_close)
             shadow_lower = min(last_open, last_close) - last_low
+            total_range = last_high - last_low
             
             # Doji
-            if body_size < (last_high - last_low) * 0.1:
+            if total_range > 0 and body_size < total_range * 0.1:
                 patterns.append("Doji")
             
+            # Marubozu (Bullish) - body besar, shadow kecil
+            if last_close > last_open and shadow_upper < body_size * 0.1 and shadow_lower < body_size * 0.1:
+                patterns.append("Marubozu (Bullish)")
+            
+            # Marubozu (Bearish)
+            if last_close < last_open and shadow_upper < body_size * 0.1 and shadow_lower < body_size * 0.1:
+                patterns.append("Marubozu (Bearish)")
+            
             # Hammer (body kecil, shadow bawah panjang)
-            if shadow_lower > body_size * 2 and shadow_upper < body_size:
+            if body_size < total_range * 0.3 and shadow_lower > body_size * 2 and shadow_upper < body_size:
                 patterns.append("Hammer")
             
             # Shooting Star (body kecil, shadow atas panjang)
-            if shadow_upper > body_size * 2 and shadow_lower < body_size:
+            if body_size < total_range * 0.3 and shadow_upper > body_size * 2 and shadow_lower < body_size:
                 patterns.append("Shooting Star")
             
-            # Marubozu (no shadow)
-            if shadow_upper < body_size * 0.1 and shadow_lower < body_size * 0.1:
-                if last_close > last_open:
-                    patterns.append("Marubozu (Bullish)")
-                else:
-                    patterns.append("Marubozu (Bearish)")
+            # Engulfing (perlu 2 candle)
+            if len(df) >= 2:
+                prev_close = df['Close'].iloc[-2]
+                prev_open = df['Open'].iloc[-2]
+                
+                # Bullish Engulfing
+                if prev_close < prev_open and last_close > last_open and last_open < prev_close and last_close > prev_open:
+                    patterns.append("Bullish Engulfing")
+                
+                # Bearish Engulfing
+                if prev_close > prev_open and last_close < last_open and last_open > prev_close and last_close < prev_open:
+                    patterns.append("Bearish Engulfing")
             
             # ===== SUPPORT/RESISTANCE LEVELS =====
             sr_levels = self.detect_support_resistance(df)
@@ -228,6 +279,19 @@ class MinerviniScreenerPro:
             ma_alignment = self.detect_ma_alignment(df)
             if ma_alignment:
                 patterns.append(ma_alignment)
+            
+            # ===== VOLUME ANALYSIS =====
+            current_vol = df['Volume'].iloc[-1]
+            avg_vol_20 = df['Volume'].tail(20).mean()
+            avg_vol_50 = df['Volume'].tail(50).mean()
+            
+            if current_vol > avg_vol_20 * 2:
+                patterns.append("Volume Spike (2x)")
+            elif current_vol > avg_vol_20 * 1.5:
+                patterns.append("Volume Spike (1.5x)")
+            
+            if avg_vol_20 < avg_vol_50 * 0.7:
+                patterns.append("Volume Dry-up")
             
             # Gabungkan dengan koma
             if patterns:
@@ -251,30 +315,47 @@ class MinerviniScreenerPro:
             highs = recent_df['High'].values
             lows = recent_df['Low'].values
             closes = recent_df['Close'].values
+            current_price = closes[-1]
             
             levels = []
             
-            # Resistance
-            for i in range(len(highs)-10, len(highs)):
-                current_high = highs[i]
+            # Resistance - cari level yang diuji minimal 3 kali
+            resistance_candidates = []
+            for i in range(len(highs)):
+                level = highs[i]
                 touch_count = 0
                 for j in range(len(highs)):
-                    if abs(highs[j] - current_high) / current_high < threshold:
+                    if abs(highs[j] - level) / level < threshold:
                         touch_count += 1
-                if touch_count >= 3 and current_high > closes[-1] * 0.95:
-                    levels.append(f"R{current_high:.0f}")
-                    break
+                if touch_count >= 3 and level > current_price * 0.95:
+                    resistance_candidates.append((level, touch_count))
             
-            # Support
-            for i in range(len(lows)-10, len(lows)):
-                current_low = lows[i]
+            if resistance_candidates:
+                # Ambil resistance terdekat di atas harga
+                resistance_candidates.sort()
+                for level, _ in resistance_candidates:
+                    if level > current_price:
+                        levels.append(f"R{level:.0f}")
+                        break
+            
+            # Support - cari level yang diuji minimal 3 kali
+            support_candidates = []
+            for i in range(len(lows)):
+                level = lows[i]
                 touch_count = 0
                 for j in range(len(lows)):
-                    if abs(lows[j] - current_low) / current_low < threshold:
+                    if abs(lows[j] - level) / level < threshold:
                         touch_count += 1
-                if touch_count >= 3 and current_low < closes[-1] * 1.05:
-                    levels.append(f"S{current_low:.0f}")
-                    break
+                if touch_count >= 3 and level < current_price * 1.05:
+                    support_candidates.append((level, touch_count))
+            
+            if support_candidates:
+                # Ambil support terdekat di bawah harga
+                support_candidates.sort(reverse=True)
+                for level, _ in support_candidates:
+                    if level < current_price:
+                        levels.append(f"S{level:.0f}")
+                        break
             
             return " ".join(levels)
             
@@ -294,6 +375,7 @@ class MinerviniScreenerPro:
             price = df['Close'].iloc[-1]
             
             golden_cross = ma20 > ma50
+            death_cross = ma20 < ma50
             perfect_order = (ma20 > ma50 > ma150 > ma200)
             above_all = price > ma20 and price > ma50 and price > ma150 and price > ma200
             
@@ -303,6 +385,8 @@ class MinerviniScreenerPro:
                 return "Golden Cross + Above MAs"
             elif above_all:
                 return "Above All MAs"
+            elif death_cross:
+                return "Death Cross"
             else:
                 return ""
                 
@@ -490,7 +574,7 @@ class MinerviniScreenerPro:
             rs_score = self.calculate_relative_strength(df)
             vcp_total, vcp_tight, vcp_vol = self.calculate_vcp_score(df)
             
-            # DETEKSI POLA
+            # DETEKSI POLA (SUDAH TERMASUK BREAKOUT)
             patterns_str = self.detect_chart_patterns(df)
             
             c1 = price > ma150 and price > ma200 if not pd.isna(ma150) and not pd.isna(ma200) else False
@@ -556,7 +640,7 @@ class MinerviniScreenerPro:
     def screen(self, tickers):
         """Fungsi utama screening dengan multithreading"""
         self.logger.info(f"\n{'='*80}")
-        self.logger.info(f"MINERVINI PRO SCREENER v7.0 - FINAL")
+        self.logger.info(f"MINERVINI PRO SCREENER v8.0 - DENGAN BREAKOUT DETECTION")
         self.logger.info(f"{'='*80}")
         self.logger.info(f"Total saham: {len(tickers)}")
         self.logger.info(f"Thread workers: {self.max_workers}")
@@ -618,7 +702,10 @@ class MinerviniScreenerPro:
         
         if self.results:
             df_results = pd.DataFrame(self.results)
-            df_results = df_results.sort_values(['RS'], ascending=[False])
+            # Prioritaskan saham dengan breakout
+            df_results['HasBreakout'] = df_results['Patterns'].str.contains('BREAKOUT', na=False)
+            df_results = df_results.sort_values(['HasBreakout', 'RS'], ascending=[False, False])
+            df_results = df_results.drop('HasBreakout', axis=1)
         else:
             df_results = pd.DataFrame()
         
