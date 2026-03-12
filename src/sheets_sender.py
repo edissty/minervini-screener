@@ -34,7 +34,7 @@ def send_to_google_sheets(df, webhook_url):
                 'Harga': row.get('Harga', '0'),
                 'VCP': row.get('VCP', '0'),
                 'RS': row.get('RS', '0'),
-                'Keterangan': row.get('Keterangan', '')  # Untuk pattern
+                'Keterangan': row.get('Keterangan', '')  # PASTIKAN INI ADA
             }
             results.append(result)
         
@@ -47,6 +47,8 @@ def send_to_google_sheets(df, webhook_url):
         }
         
         print(f"  📤 Mengirim {len(results)} data 8/8 ke Google Sheets...")
+        if results:
+            print(f"  📝 Contoh keterangan: {results[0]['Keterangan'][:100]}...")
         
         headers = {'Content-Type': 'application/json'}
         response = requests.post(
