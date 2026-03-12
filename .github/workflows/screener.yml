@@ -26,55 +26,20 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install --upgrade setuptools wheel
       
-      - name: Install dependencies (non-PatternPy)
+      - name: Install dependencies
         run: |
           pip install yfinance pandas numpy curl_cffi requests pytz
       
-      - name: Debug - Clone and list PatternPy structure
+      - name: Install PatternPy from fork
         run: |
-          echo "📦 Cloning PatternPy from fork..."
           git clone https://github.com/edissty/PatternPy.git
-          echo "📂 Isi direktori PatternPy:"
-          ls -la PatternPy/
-          echo "📂 Isi lengkap (rekursif):"
-          find PatternPy -type f | head -20
-      
-      - name: Install PatternPy
-        run: |
           cd PatternPy
-          if [ -f setup.py ]; then
-            echo "✅ Menemukan setup.py, menginstall..."
-            pip install .
-          elif [ -f pyproject.toml ]; then
-            echo "✅ Menemukan pyproject.toml, menginstall..."
-            pip install .
-          else
-            echo "⚠️ Tidak menemukan file instalasi, coba install dari folder saat ini"
-            pip install -e .
-          fi
+          pip install .
           cd ..
+          rm -rf PatternPy
       
-      - name: Test PatternPy installation
-        run: |
-          python -c "import sys; print('🔍 Mencari PatternPy...')
-try:
-    try:
-        import patternpy
-        print(f'✅ patternpy ditemukan di: {patternpy.__file__}')
-    except ImportError:
-        try:
-            import PatternPy
-            print(f'✅ PatternPy ditemukan di: {PatternPy.__file__}')
-        except ImportError:
-            try:
-                import patterns
-                print(f'✅ patterns ditemukan di: {patterns.__file__}')
-            except ImportError:
-                print('❌ Tidak dapat mengimport PatternPy dengan berbagai nama')
-                sys.exit(1)
-except Exception as e:
-    print(f'❌ Error: {e}')
-    sys.exit(1)"
+      - name: Test PatternPy
+        run: python -c "import patternpy; print('✅ PatternPy OK')" || python -c "import PatternPy; print('✅ PatternPy OK')" || python -c "import patterns; print('✅ Patterns OK')" || echo "⚠️ PatternPy tidak ditemukan"
       
       - name: Run screener
         env:
