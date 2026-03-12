@@ -56,28 +56,7 @@ if os.path.exists(patternpy_path):
         PATTERN_LIB_AVAILABLE = False
         print("=" * 60)
         print(f"❌❌❌ PatternPy GAGAL diimport: {e}")
-        print("   Mencoba struktur import alternatif...")
-        
-        # Coba struktur import alternatif
-        try:
-            # Mungkin struktur foldernya berbeda
-            sys.path.insert(0, os.path.join(patternpy_path, 'src'))
-            from patternpy.pivots import find_pivots, find_swing_points
-            from patternpy.patterns import (
-                detect_channel,
-                detect_double_top_bottom,
-                detect_triangle_pattern,
-                detect_wedge,
-                head_and_shoulders,
-                detect_multiple_tops_bottoms
-            )
-            from patternpy.support_resistance import calculate_support_resistance
-            PATTERN_LIB_AVAILABLE = True
-            print("✅✅✅ PatternPy BERHASIL dari folder src!")
-        except ImportError as e2:
-            print(f"❌❌❌ Semua percobaan gagal: {e2}")
-            print("   PatternPy tidak dapat digunakan")
-            PATTERN_LIB_AVAILABLE = False
+        print("   PatternPy tidak dapat digunakan")
         print("=" * 60)
 else:
     PATTERN_LIB_AVAILABLE = False
@@ -140,7 +119,7 @@ class MinerviniScreenerPro:
         if PATTERN_LIB_AVAILABLE:
             self.logger.info("✅ PatternPy tersedia - menggunakan deteksi pola LENGKAP")
         else:
-            self.logger.warning(f"⚠️ PatternPy tidak tersedia - hanya pattern manual")
+            self.logger.warning("⚠️ PatternPy tidak tersedia - hanya pattern manual")
 
     def fix_timezone(self, df):
         """Memperbaiki masalah timezone pada dataframe"""
