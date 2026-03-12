@@ -1,7 +1,7 @@
 # ============================================
 # MINERVINI PRO SCREENER - VERSI FINAL
 # Hanya mengirim SAHAM 8/8 ke Google Sheets
-# Menggunakan m-patternpy untuk deteksi pola
+# Menggunakan TA Library untuk indikator teknikal
 # ============================================
 
 import yfinance as yf
@@ -19,35 +19,30 @@ import os
 import pytz
 import traceback
 
-# ===== CEK PATTERNPY ATAU M-PATTERNPY =====
-PATTERN_LIB_AVAILABLE = False
-pattern_import_error = ""
-
+# Import TA Library untuk indikator teknikal
 try:
-    # Coba import m-patternpy (yang lebih mudah diinstall)
-    import m_patternpy as mp
-    from m_patternpy.patterns import (
-        head_and_shoulders,
-        double_top_bottom,
-        ascending_triangle,
-        descending_triangle,
-        wedge_patterns,
-        channel_patterns
+    import ta
+    from ta.trend import (
+        SMAIndicator,
+        EMAIndicator,
+        MACD,
+        ADXIndicator,
+        CCIIndicator
     )
-    PATTERN_LIB_AVAILABLE = True
-    print("=" * 60)
-    print("✅✅✅ m-patternpy BERHASIL diimport")
-    print("   - head_and_shoulders tersedia")
-    print("   - double_top_bottom tersedia")
-    print("   - ascending_triangle tersedia")
-    print("=" * 60)
+    from ta.momentum import (
+        RSIIndicator,
+        StochasticOscillator,
+        WilliamsRIndicator
+    )
+    from ta.volatility import (
+        BollingerBands,
+        AverageTrueRange
+    )
+    TA_LIB_AVAILABLE = True
+    print("✅ TA Library berhasil diimport")
 except ImportError as e:
-    pattern_import_error = str(e)
-    print("=" * 60)
-    print(f"❌❌❌ m-patternpy GAGAL diimport: {e}")
-    print("   Install dengan: pip install m-patternpy")
-    print("=" * 60)
-    PATTERN_LIB_AVAILABLE = False
+    TA_LIB_AVAILABLE = False
+    print(f"⚠️ TA Library tidak tersedia: {e}")
 
 class MinerviniScreenerPro:
     """
@@ -98,13 +93,6 @@ class MinerviniScreenerPro:
             ]
         )
         self.logger = logging.getLogger(__name__)
-        
-        # Log status Pattern Library
-        if PATTERN_LIB_AVAILABLE:
-            self.logger.info("✅ m-patternpy tersedia - akan menggunakan deteksi pola lengkap")
-        else:
-            self.logger.warning(f"⚠️ m-patternpy tidak tersedia: {pattern_import_error}")
-            self.logger.warning("   Deteksi pola terbatas pada support/resistance dan MA alignment saja")
 
     def fix_timezone(self, df):
         """Memperbaiki masalah timezone pada dataframe"""
@@ -150,12 +138,11 @@ class MinerviniScreenerPro:
             return False
 
     # ============================================
-    # FUNGSI DETEKSI POLA CHART DENGAN M-PATTERNPY
+    # FUNGSI DETEKSI POLA CHART (SEDERHANA TANPA LIBRARY)
     # ============================================
     def detect_chart_patterns(self, df):
         """
-        Mendeteksi berbagai pola chart menggunakan m-patternpy
-        Returns: string patterns yang siap digabung
+        Mendeteksi pola chart sederhana tanpa library eksternal
         """
         patterns = []
         
@@ -173,79 +160,64 @@ class MinerviniScreenerPro:
             elif vcp_total >= 50:
                 patterns.append(f"VCP Sedang ({vcp_total})")
             
-            # ===== DETEKSI DARI M-PATTERNPY =====
-            if PATTERN_LIB_AVAILABLE:
-                self.logger.debug(f"   Menggunakan m-patternpy untuk deteksi pola...")
-                
-                # 1. Head & Shoulders
-                try:
-                    df_hs = head_and_shoulders(df.copy())
-                    if df_hs is not None:
-                        patterns.append("Head & Shoulders")
-                except Exception as e:
-                    self.logger.debug(f"   Error head_and_shoulders: {e}")
-                
-                # 2. Double Top/Bottom
-                try:
-                    df_dt = double_top_bottom(df.copy())
-                    if df_dt is not None:
-                        patterns.append("Double Top/Bottom")
-                except Exception as e:
-                    self.logger.debug(f"   Error double_top_bottom: {e}")
-                
-                # 3. Triangle Patterns
-                try:
-                    df_at = ascending_triangle(df.copy())
-                    if df_at is not None:
-                        patterns.append("Ascending Triangle")
-                except Exception as e:
-                    self.logger.debug(f"   Error ascending_triangle: {e}")
-                
-                try:
-                    df_dt = descending_triangle(df.copy())
-                    if df_dt is not None:
-                        patterns.append("Descending Triangle")
-                except Exception as e:
-                    self.logger.debug(f"   Error descending_triangle: {e}")
-                
-                # 4. Wedge Patterns
-                try:
-                    df_wedge = wedge_patterns(df.copy())
-                    if df_wedge is not None:
-                        patterns.append("Wedge Pattern")
-                except Exception as e:
-                    self.logger.debug(f"   Error wedge_patterns: {e}")
-                
-                # 5. Channel Patterns
-                try:
-                    df_channel = channel_patterns(df.copy())
-                    if df_channel is not None:
-                        patterns.append("Channel Pattern")
-                except Exception as e:
-                    self.logger.debug(f"   Error channel_patterns: {e}")
-                
-                # 6. Trend detection sederhana
-                try:
-                    # Cek Higher Highs / Higher Lows
-                    highs = df['High'].tail(20).values
-                    lows = df['Low'].tail(20).values
-                    
-                    if len(highs) >= 5:
-                        hh_count = sum(1 for i in range(1, len(highs)) if highs[i] > highs[i-1])
-                        hl_count = sum(1 for i in range(1, len(lows)) if lows[i] > lows[i-1])
-                        
-                        if hh_count > len(highs) * 0.6 and hl_count > len(lows) * 0.6:
-                            patterns.append("Uptrend")
-                        elif hh_count < len(highs) * 0.4 and hl_count < len(lows) * 0.4:
-                            patterns.append("Downtrend")
-                        else:
-                            patterns.append("Sideways")
-                except Exception as e:
-                    self.logger.debug(f"   Error trend detection: {e}")
+            # ===== TREND DETECTION SEDERHANA =====
+            # Cek Higher Highs / Higher Lows (20 periode)
+            highs = df['High'].tail(20).values
+            lows = df['Low'].tail(20).values
             
-            else:
-                # Fallback jika Pattern Library tidak tersedia
-                patterns.append("Pattern Library tidak tersedia")
+            if len(highs) >= 10:
+                # Hitung higher highs
+                hh_count = 0
+                hl_count = 0
+                lh_count = 0
+                ll_count = 0
+                
+                for i in range(1, len(highs)):
+                    if highs[i] > highs[i-1]:
+                        hh_count += 1
+                    else:
+                        lh_count += 1
+                    
+                    if lows[i] > lows[i-1]:
+                        hl_count += 1
+                    else:
+                        ll_count += 1
+                
+                if hh_count > len(highs) * 0.6 and hl_count > len(lows) * 0.6:
+                    patterns.append("Uptrend")
+                elif lh_count > len(highs) * 0.6 and ll_count > len(lows) * 0.6:
+                    patterns.append("Downtrend")
+                else:
+                    patterns.append("Sideways")
+            
+            # ===== CANDLESTICK PATTERNS =====
+            # Doji (open ≈ close)
+            last_open = df['Open'].iloc[-1]
+            last_close = df['Close'].iloc[-1]
+            last_high = df['High'].iloc[-1]
+            last_low = df['Low'].iloc[-1]
+            body_size = abs(last_close - last_open)
+            shadow_upper = last_high - max(last_open, last_close)
+            shadow_lower = min(last_open, last_close) - last_low
+            
+            # Doji
+            if body_size < (last_high - last_low) * 0.1:
+                patterns.append("Doji")
+            
+            # Hammer (body kecil, shadow bawah panjang)
+            if shadow_lower > body_size * 2 and shadow_upper < body_size:
+                patterns.append("Hammer")
+            
+            # Shooting Star (body kecil, shadow atas panjang)
+            if shadow_upper > body_size * 2 and shadow_lower < body_size:
+                patterns.append("Shooting Star")
+            
+            # Marubozu (no shadow)
+            if shadow_upper < body_size * 0.1 and shadow_lower < body_size * 0.1:
+                if last_close > last_open:
+                    patterns.append("Marubozu (Bullish)")
+                else:
+                    patterns.append("Marubozu (Bearish)")
             
             # ===== SUPPORT/RESISTANCE LEVELS =====
             sr_levels = self.detect_support_resistance(df)
@@ -584,14 +556,10 @@ class MinerviniScreenerPro:
     def screen(self, tickers):
         """Fungsi utama screening dengan multithreading"""
         self.logger.info(f"\n{'='*80}")
-        self.logger.info(f"MINERVINI PRO SCREENER v7.0 - M-PATTERNPY INTEGRATION")
+        self.logger.info(f"MINERVINI PRO SCREENER v7.0 - FINAL")
         self.logger.info(f"{'='*80}")
         self.logger.info(f"Total saham: {len(tickers)}")
         self.logger.info(f"Thread workers: {self.max_workers}")
-        if PATTERN_LIB_AVAILABLE:
-            self.logger.info(f"Pattern Library: ✅ m-patternpy tersedia - deteksi pola LENGKAP")
-        else:
-            self.logger.info(f"Pattern Library: ⚠️ m-patternpy TIDAK tersedia - deteksi pola terbatas")
         self.logger.info(f"{'='*80}\n")
         
         self.total_saham = len(tickers)
