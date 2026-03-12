@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}  # Tambahkan token otomatis
       
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -29,7 +31,7 @@ jobs:
           pip install yfinance pandas numpy curl_cffi requests pytz
       
       - name: Install PatternPy from fork edissty
-        run: pip install git+https://github.com/edissty/PatternPy.git
+        run: pip install git+https://${{ secrets.GITHUB_TOKEN }}@github.com/edissty/PatternPy.git
       
       - name: Verify PatternPy installation
         run: python -c "from patternpy.pivots import find_pivots; print('✅ PatternPy OK')"
