@@ -32,31 +32,20 @@ jobs:
         run: pip list
       
       - name: Install m-patternpy with verbose
-        run: |
-          pip install -v m-patternpy
+        run: pip install -v m-patternpy
       
       - name: Debug - List installed packages after m-patternpy
         run: pip list | grep -i pattern
       
       - name: Try alternative import names
         run: |
-          python -c "
-import sys
-import pkgutil
-print('📦 Mencari semua module pattern:')
-for importer, modname, ispkg in pkgutil.iter_modules():
-    if 'pattern' in modname.lower():
-        print(f'  - {modname}')
-"
+          python -c "import sys; import pkgutil; print('📦 Mencari semua module pattern:'); found = False; for importer, modname, ispkg in pkgutil.iter_modules(): 
+            if 'pattern' in modname.lower(): 
+                print(f'  - {modname}'); found = True; 
+          if not found: print('  Tidak ada module pattern ditemukan')"
       
-      - name: Try import m_patternpy with full path
-        run: |
-          python -c "
-import sys
-import site
-print('Site packages:')
-print(site.getsitepackages())
-"
+      - name: Try import m_patternpy
+        run: python -c "import sys; print('Mencoba import...'); import m_patternpy; print('✅ Berhasil import m_patternpy')" || python -c "import patternpy; print('✅ Berhasil import patternpy')" || python -c "import patterns; print('✅ Berhasil import patterns')" || echo "❌ Semua import gagal"
       
       - name: Run screener
         env:
