@@ -30,16 +30,7 @@ jobs:
           pip install patternpy
       
       - name: Verify PatternPy installation
-        run: |
-          python -c "
-import sys
-try:
-    from patternpy.pivots import find_pivots
-    print('✅ PatternPy berhasil diinstall')
-except ImportError as e:
-    print(f'❌ PatternPy gagal: {e}')
-    sys.exit(1)
-"
+        run: python -c "from patternpy.pivots import find_pivots; print('✅ PatternPy OK')"
       
       - name: Run screener
         env:
