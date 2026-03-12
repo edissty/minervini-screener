@@ -1,7 +1,7 @@
 # ============================================
 # MINERVINI PRO SCREENER - VERSI FINAL
 # Hanya mengirim SAHAM 8/8 ke Google Sheets
-# Format Keterangan: Minervini 8/8 VCP:82 RS:85 | Entry: 11.250
+# Format Keterangan: Minervini 8/8 VCP:82 RS:85 | Entry: 11.250 | Patterns
 # ============================================
 
 import yfinance as yf
@@ -38,7 +38,6 @@ class MinerviniScreenerPro:
     """
     Screener saham syariah Indonesia dengan 8 kriteria Minervini
     Output: Hanya mengirim SAHAM 8/8 ke Google Sheets
-    Format Keterangan: Minervini 8/8 VCP:82 RS:85 | Entry: 11.250
     """
     
     def __init__(self, min_turnover=300_000_000, max_workers=15, log_level=logging.INFO):
@@ -596,8 +595,11 @@ class MinerviniScreenerPro:
                 entry_str = f"{entry_price:,}".replace(',', '.')
                 
                 # Buat keterangan untuk Google Sheets
-                # Format: Minervini 8/8 VCP:82 RS:85 | Entry: 11.250
                 keterangan = f"Minervini 8/8 VCP:{vcp_total} RS:{rs_score} | Entry: {entry_str}"
+                
+                # Tambahkan pattern jika ada
+                if patterns_str and patterns_str != "":
+                    keterangan += f" | {patterns_str}"
                 
                 # Buat result - HANYA UNTUK 8/8
                 result = {
