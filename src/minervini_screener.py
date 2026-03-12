@@ -29,8 +29,8 @@ if os.path.exists(patternpy_path):
     print(f"📂 PatternPy path: {patternpy_path}")
     
     try:
-        # Import dari folder tradingpatterns
-        from tradingpatterns import (
+        # Import dari tradingpatterns.py
+        from tradingpatterns.tradingpatterns import (
             head_and_shoulders,
             double_top_bottom,
             horizontal_support_resistance,
@@ -54,26 +54,8 @@ if os.path.exists(patternpy_path):
         PATTERN_LIB_AVAILABLE = False
         print("=" * 60)
         print(f"❌❌❌ PatternPy GAGAL diimport: {e}")
-        print("   Mencoba import alternatif...")
-        
-        # Coba import dengan path lengkap
-        try:
-            from PatternPy.tradingpatterns import (
-                head_and_shoulders,
-                double_top_bottom,
-                horizontal_support_resistance,
-                ascending_triangle,
-                descending_triangle,
-                wedge_patterns,
-                channel_patterns
-            )
-            PATTERN_LIB_AVAILABLE = True
-            print("✅✅✅ PatternPy BERHASIL diimport (dengan PatternPy.tradingpatterns)!")
-        except ImportError as e2:
-            PATTERN_LIB_AVAILABLE = False
-            print(f"❌❌❌ Semua percobaan gagal: {e2}")
-            print("   PatternPy tidak dapat digunakan - menggunakan pattern manual")
-            print("=" * 60)
+        print("   PatternPy tidak dapat digunakan - menggunakan pattern manual")
+        print("=" * 60)
 else:
     PATTERN_LIB_AVAILABLE = False
     print("=" * 60)
