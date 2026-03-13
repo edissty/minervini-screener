@@ -1,6 +1,6 @@
 # ============================================
-# EMAIL_SENDER.PY - MINERVINI SCREENER v8.0
-# Dengan Breakout Highlight di Trading Plan
+# EMAIL_SENDER.PY - MINERVINI SCREENER v11.0
+# Dengan DeepSeek Senior Hedge Fund Analyst
 # ============================================
 
 import smtplib
@@ -8,19 +8,14 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from datetime import datetime, timezone, timedelta
+from src.deepseek_analyst import DeepSeekAnalyst  # TAMBAHKAN IMPORT
 
 def get_wib_time():
-    """
-    Mendapatkan waktu WIB (UTC+7) yang akurat
-    """
     utc_now = datetime.now(timezone.utc)
     wib_now = utc_now + timedelta(hours=7)
     return wib_now
 
 def format_currency(value):
-    """
-    Format angka ke format Rupiah
-    """
     try:
         if isinstance(value, str):
             clean = value.replace('Rp ', '').replace('.', '')
@@ -30,9 +25,6 @@ def format_currency(value):
         return str(value)
 
 def parse_price(price_str):
-    """
-    Parse harga dari string ke numeric
-    """
     try:
         if isinstance(price_str, str):
             clean = price_str.replace('Rp ', '').replace('.', '').replace('K', '000')
@@ -43,7 +35,7 @@ def parse_price(price_str):
 
 def send_email_report(df, email_to, email_from, password, criteria, smtp_server='smtp.gmail.com', port=587):
     """
-    Mengirim laporan hasil screening ke email - HANYA SAHAM 8/8
+    Mengirim laporan hasil screening ke email dengan analisis DeepSeek
     """
     print("\n" + "=" * 50)
     print("📧 PROSES KIRIM EMAIL")
@@ -51,11 +43,15 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
     
     wib_time = get_wib_time()
     
+    # Inisialisasi DeepSeek Analyst
+    analyst = DeepSeekAnalyst()
+    deepseek_section = ""
+    
     try:
         msg = MIMEMultipart()
         msg['From'] = email_from
         msg['To'] = email_to
-        msg['Subject'] = f"📊 MINERVINI SCREENER 8/8 + BREAKOUT - {wib_time.strftime('%d-%m-%Y %H:%M')} WIB"
+        msg['Subject'] = f"📊 MINERVINI SCREENER 8/8 + DEEPSEEK ANALYSIS - {wib_time.strftime('%d-%m-%Y %H:%M')} WIB"
         
         if df is not None and not df.empty:
             # Filter hanya 8/8
@@ -81,6 +77,53 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                 total_8 = len(df_88)
                 breakout_count = df_88['Patterns'].str.contains('BREAKOUT', na=False).sum() if 'Patterns' in df_88.columns else 0
                 
+                # ===== DEEPSEEK ANALYSIS =====
+                if analyst.available:
+                    print("\n🤖 Memanggil Senior Hedge Fund Analyst...")
+                    
+                    # Analisis breakout stocks
+                    breakout_analysis = analyst.analyze_breakout_stocks(df_88)
+                    
+                    # Analisis detail untuk top 3 saham (prioritas breakout dulu)
+                    detailed_analysis = ""
+                    top_stocks = df_88.sort_values(
+                        by=['Patterns'], 
+                        key=lambda x: x.str.contains('BREAKOUT', na=False).astype(int),
+                        ascending=False
+                    ).head(3)
+                    
+                    for _, row in top_stocks.iterrows():
+                        analysis = analyst.analyze_stock(row.to_dict(), detailed=True)
+                        if analysis and not analysis.startswith('[Error'):
+                            detailed_analysis += f"""
+                            <div style="background: #1e1e2f; color: #f0f0f0; padding: 15px; margin: 10px 0; border-radius: 8px;">
+                                <h4 style="color: #ffd700; margin-top: 0;">📊 {row['Ticker']} - Senior Hedge Fund Analysis</h4>
+                                <div style="font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6;">
+                                    {analysis.replace(chr(10), '<br>')}
+                                </div>
+                            </div>
+                            """
+                    
+                    # Gabungkan semua analisis
+                    if breakout_analysis or detailed_analysis:
+                        deepseek_section = f"""
+                        <div style="background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%); 
+                                    color: white; padding: 20px; border-radius: 15px; margin: 25px 0;">
+                            <h3 style="color: #ffd700; margin-top: 0; display: flex; align-items: center;">
+                                <span style="font-size: 28px; margin-right: 10px;">🤖</span> 
+                                SENIOR HEDGE FUND ANALYST INSIGHTS
+                            </h3>
+                            
+                            {breakout_analysis.replace(chr(10), '<br>') if breakout_analysis else ''}
+                            
+                            {detailed_analysis}
+                            
+                            <p style="font-size: 11px; color: #aaa; margin-top: 15px; border-top: 1px solid #333; padding-top: 10px;">
+                                <i>Analisis AI oleh DeepSeek • Bukan rekomendasi investasi • Selalu lakukan verifikasi manual</i>
+                            </p>
+                        </div>
+                        """
+                
                 # Buat tabel HTML
                 table_html = df_88.to_html(index=False, escape=False, classes='screening-table')
                 
@@ -94,10 +137,8 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                     patterns = row['Patterns'] if 'Patterns' in row else 'Tidak ada pola'
                     rr = row['RR_Ratio'] if 'RR_Ratio' in row else '2.9'
                     
-                    # Deteksi apakah ada breakout
                     is_breakout = 'BREAKOUT' in str(patterns).upper()
                     
-                    # Hitung level trading
                     harga_numeric = parse_price(harga)
                     if harga_numeric > 0:
                         entry_price = harga_numeric
@@ -120,7 +161,6 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                         target2_str = "-"
                         risk_reward = 0
                     
-                    # Warna card berdasarkan breakout
                     card_color = "#fff3cd" if is_breakout else "#f0f7ff"
                     border_color = "#ffc107" if is_breakout else "#27ae60"
                     
@@ -196,13 +236,6 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                             border-radius: 10px;
                             margin: 20px 0;
                         }}
-                        .breakout-box {{
-                            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
-                            color: #000;
-                            padding: 20px;
-                            border-radius: 10px;
-                            margin: 20px 0;
-                        }}
                         table {{ 
                             border-collapse: collapse; 
                             width: 100%;
@@ -223,8 +256,13 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                             border: 1px solid #ddd; 
                             padding: 8px; 
                         }}
-                        .breakout-row {{
-                            background-color: #fff3cd !important;
+                        .badge-8 {{
+                            background-color: #27ae60;
+                            color: white;
+                            padding: 3px 10px;
+                            border-radius: 15px;
+                            font-weight: bold;
+                            display: inline-block;
                         }}
                         .footer {{
                             margin-top: 30px;
@@ -238,7 +276,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                 </head>
                 <body>
                     <div class="container">
-                        <h2>📈 MINERVINI SCREENER + BREAKOUT DETECTION</h2>
+                        <h2>📈 MINERVINI SCREENER + DEEPSEEK ANALYST</h2>
                         <p><strong>Waktu Screening:</strong> {wib_time.strftime('%d-%m-%Y %H:%M:%S')} WIB</p>
                         
                         <div class="summary-box">
@@ -246,6 +284,8 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                             <p>Total Saham 8/8: <strong>{total_8}</strong></p>
                             <p>Saham dengan Breakout: <strong>{breakout_count}</strong></p>
                         </div>
+                        
+                        {deepseek_section}
                         
                         <h3>📋 DETAIL SAHAM 8/8</h3>
                         <p><small>✓ = Memenuhi kriteria | ✗ = Tidak memenuhi</small></p>
@@ -256,7 +296,8 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                         
                         <div class="footer">
                             <p><i>🚀 BREAKOUT = Harga mendekati resistance + Volume tinggi + Candle kuat</i></p>
-                            <p>Generated by Minervini Screener v8.0 • {wib_time.strftime('%d-%m-%Y %H:%M:%S')} WIB</p>
+                            <p><i>🤖 Analisis DeepSeek untuk prioritas entry</i></p>
+                            <p>Generated by Minervini Screener v11.0 • {wib_time.strftime('%d-%m-%Y %H:%M:%S')} WIB</p>
                         </div>
                     </div>
                 </body>
@@ -265,7 +306,6 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                 
                 msg.attach(MIMEText(body, 'html'))
                 
-                # Lampirkan CSV
                 csv_data = df_88.to_csv(index=False)
                 attachment = MIMEApplication(csv_data.encode('utf-8'))
                 attachment.add_header(
@@ -297,7 +337,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
         server.send_message(msg)
         server.quit()
         
-        print("✅ EMAIL BERHASIL DIKIRIM!")
+        print("✅ EMAIL DENGAN DEEPSEEK ANALISIS BERHASIL DIKIRIM!")
         return True
         
     except Exception as e:
