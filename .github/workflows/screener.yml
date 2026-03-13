@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -27,7 +29,13 @@ jobs:
       - name: Install dependencies
         run: |
           pip install yfinance pandas numpy curl_cffi requests pytz
-          pip install openai  # Untuk DeepSeek API (kompatibel dengan OpenAI SDK)
+          pip install google-generativeai  # Untuk Gemini API
+      
+      - name: Verify installations
+        run: |
+          python -c "import yfinance; print('✅ yfinance OK')"
+          python -c "import pandas; print('✅ pandas OK')"
+          python -c "import google.generativeai; print('✅ Gemini API OK')"
       
       - name: Run screener
         env:
@@ -35,7 +43,7 @@ jobs:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
           GOOGLE_SHEETS_WEBHOOK: ${{ secrets.GOOGLE_SHEETS_WEBHOOK }}
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}  # API Key Google Gemini
         run: python main.py
         
       - name: Upload results
@@ -45,3 +53,10 @@ jobs:
           path: results/
           retention-days: 7
           if-no-files-found: warn
+      
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 📊 Screening Complete" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Workflow selesai dijalankan" >> $GITHUB_STEP_SUMMARY
+          echo "📅 Waktu: $(date)" >> $GITHUB_STEP_SUMMARY
