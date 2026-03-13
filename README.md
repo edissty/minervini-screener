@@ -29,77 +29,66 @@ Automated stock screener yang secara otomatis memeriksa **saham syariah Indonesi
 | **C7** | Harga dalam 25% dari High 52-W |
 | **C8** | RS Rating > 70 |
 
-## 📁 **Struktur Proyek**
+Struktur File saat ini 
 minervini-screener/
-├── .github/workflows/ # GitHub Actions
-├── src/ # Source code screener
-├── PatternPy/ # PatternPy library (submodule)
-├── config/ # Daftar saham
-├── results/ # Hasil screening (CSV)
-├── main.py # Entry point
-├── requirements.txt # Dependencies
-└── README.md # Dokumentasi
+├── .github/workflows/
+│   └── screener.yml                    
+├── src/
+│   ├── minervini_screener.py            
+│   ├── email_sender.py                   
+│   ├── sheets_sender.py                   
+│   └── deepseek_analyst.py                
+├── config/
+│   └── stocks_list.txt                    
+├── main.py                                 
+├── requirements.txt                     
+└── README.md                               
 
-text
+📧 Contoh Email dengan Analisis DeepSeek
+📊 RINGKASAN
+Total Saham 8/8: 21
+Saham dengan Breakout: 2
 
-## 🚀 **Cara Install**
+🤖 SENIOR HEDGE FUND ANALYST INSIGHTS
 
-```bash
-# Clone repository
-git clone https://github.com/edissty/minervini-screener.git
-cd minervini-screener
+🔥 PRIORITAS TRADING - SAHAM BREAKOUT
+• ALKA: ENTRY - Breakout valid dengan volume 2x
+• KUAS: WAIT - Breakout belum terkonfirmasi
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Jalankan screener
-python main.py
-📧 Konfigurasi Email
-Tambahkan secrets di GitHub:
-
-EMAIL_FROM: alamat Gmail
-
-EMAIL_PASSWORD: App Password Gmail
-
-EMAIL_TO: email tujuan
+📊 Analisis ALKA
+[analisis teknikal, fundamental, dan rekomendasi entry]
 
 🤝 Kontribusi
-Silakan fork repository ini dan buat pull request.
+Silakan fork repository ini dan buat pull request
 
-📜 Lisensi
-MIT License
+---
 
-text
+## 🔑 **LANGKAH TERAKHIR: TAMBAHKAN SECRET DI GITHUB**
 
-## 📋 **CARA MEMBUAT FILE DI CODESPACE**
+1. Buka repository GitHub Anda
+2. **Settings** → **Secrets and variables** → **Actions**
+3. Klik **New repository secret**
+4. Nama: `DEEPSEEK_API_KEY`
+5. Value: [API Key Anda dari DeepSeek]
 
-```bash
-# Buat file requirements.txt
-cat > requirements.txt << 'EOF'
-yfinance==0.2.28
-pandas==2.0.3
-numpy==1.24.3
-curl_cffi==0.5.10
-requests==2.31.0
-pytz==2023.3
-EOF
+---
 
-# Buat file README.md
-cat > README.md << 'EOF'
-# 📈 Minervini Stock Screener - Saham Syariah Indonesia
+## 🚀 **RINGKASAN FILE YANG PERLU DIUPDATE/DITAMBAH**
 
-[![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-Automated-blue)](https://github.com/features/actions)
-[![Python](https://img.shields.io/badge/Python-3.10-green)](https://python.org)
-[![Saham Syariah](https://img.shields.io/badge/Saham-Syariah-brightgreen)](https://www.idx.co.id)
+| File | Status | Keterangan |
+|------|--------|------------|
+| `.github/workflows/screener.yml` | ✅ UPDATE | Tambah env DEEPSEEK_API_KEY |
+| `requirements.txt` | ✅ UPDATE | Tambah `openai` |
+| `src/deepseek_analyst.py` | ✅ **FILE BARU** | Analis Hedge Fund |
+| `src/email_sender.py` | ✅ UPDATE | Integrasi DeepSeek di email |
+| `README.md` | ⚠️ OPSIONAL | Update dokumentasi |
 
-Automated stock screener untuk saham syariah Indonesia dengan 8 kriteria Minervini.
-EOF
-✅ CEK HASIL
-bash
-# Lihat apakah file sudah ada
-ls -la requirements.txt README.md
-🚀 COMMIT KE GITHUB
-bash
-git add requirements.txt README.md
-git commit -m "Restore requirements.txt and README.md"
-git push origin main
+## 🎯 **SELESAI!**
+
+Setelah semua file diupdate, setiap kali screening selesai, email Anda akan berisi:
+1. ✅ Daftar saham 8/8 seperti biasa
+2. ✅ Trading plan untuk setiap saham
+3. ✅ **Analisis Senior Hedge Fund dari DeepSeek** untuk prioritas trading
+
+**Selamat menikmati analisis profesional di setiap email!** 🚀📊
+
