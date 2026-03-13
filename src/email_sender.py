@@ -1,6 +1,7 @@
 # ============================================
-# EMAIL_SENDER.PY - MINERVINI SCREENER v12.0
-# Dengan Google Gemini Senior Hedge Fund Analyst (GRATIS!)
+# EMAIL_SENDER.PY - MINERVINI SCREENER v12.1
+# Dengan Google Gemini Senior Hedge Fund Analyst
+# Menampilkan "Tidak ada pola spesifik" untuk pattern kosong
 # ============================================
 
 import smtplib
@@ -8,7 +9,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from datetime import datetime, timezone, timedelta
-from src.gemini_analyst import GeminiAnalyst  # Import Gemini Analyst
+from src.gemini_analyst import GeminiAnalyst
+import time
 
 def get_wib_time():
     """
@@ -41,6 +43,19 @@ def parse_price(price_str):
         return float(price_str)
     except:
         return 0
+
+def format_patterns(patterns_str):
+    """
+    Format pattern string, jika kosong tampilkan "Tidak ada pola spesifik"
+    """
+    if not patterns_str or patterns_str.strip() == "":
+        return '<span style="color: #7f8c8d; font-style: italic;">Tidak ada pola spesifik (sideways/trending)</span>'
+    else:
+        # Deteksi breakout untuk styling khusus
+        if 'BREAKOUT' in patterns_str.upper():
+            return f'<span style="color: #d32f2f; font-weight: bold;">{patterns_str}</span>'
+        else:
+            return f'<span style="color: #27ae60;">{patterns_str}</span>'
 
 def send_email_report(df, email_to, email_from, password, criteria, smtp_server='smtp.gmail.com', port=587):
     """
@@ -106,28 +121,42 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                     
                     top_stocks = df_sorted.head(5)
                     
-                    for _, row in top_stocks.iterrows():
+                    for idx, (_, row) in enumerate(top_stocks.iterrows()):
                         analysis = analyst.analyze_stock(row.to_dict())
                         if analysis and not analysis.startswith('Error'):
+                            # Format pattern untuk tampilan
+                            patterns_display = format_patterns(row.get('Patterns', ''))
+                            
                             detailed_analysis += f"""
                             <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); 
                                         color: #f0f0f0; padding: 18px; margin: 15px 0; border-radius: 12px; 
                                         border-left: 5px solid #ffd700;">
-                                <h4 style="color: #ffd700; margin-top: 0; margin-bottom: 10px; font-size: 18px;">
+                                <h4 style="color: #ffd700; margin-top: 0; margin-bottom: 10px; font-size: 18px; display: flex; align-items: center;">
                                     📊 {row['Ticker']} - Senior Hedge Fund Analysis
+                                    {f'<span style="background-color: #ffc107; color: #000; padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-left: 10px;">🚀 BREAKOUT</span>' if 'BREAKOUT' in str(row.get('Patterns','')).upper() else ''}
                                 </h4>
                                 <div style="font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.7; color: #e0e0e0;">
                                     {analysis.replace(chr(10), '<br>')}
                                 </div>
-                                <div style="margin-top: 10px; font-size: 12px; color: #888; border-top: 1px solid #333; padding-top: 8px;">
-                                    <span style="background-color: {'#ffc107' if 'BREAKOUT' in str(row.get('Patterns','')).upper() else '#27ae60'}; 
-                                          color: {'#000' if 'BREAKOUT' in str(row.get('Patterns','')).upper() else '#fff'}; 
-                                          padding: 2px 8px; border-radius: 12px; font-weight: bold;">
-                                        RS: {row.get('RS', 'N/A')} | VCP: {row.get('VCP', 'N/A')}
+                                <div style="margin-top: 10px; font-size: 12px; color: #888; border-top: 1px solid #333; padding-top: 8px; display: flex; justify-content: space-between; align-items: center;">
+                                    <span>
+                                        <span style="background-color: #27ae60; color: white; padding: 2px 8px; border-radius: 12px; font-weight: bold;">
+                                            RS: {row.get('RS', 'N/A')}
+                                        </span>
+                                        <span style="background-color: #3498db; color: white; padding: 2px 8px; border-radius: 12px; margin-left: 5px; font-weight: bold;">
+                                            VCP: {row.get('VCP', 'N/A')}
+                                        </span>
+                                    </span>
+                                    <span style="font-style: italic;">
+                                        {patterns_display}
                                     </span>
                                 </div>
                             </div>
                             """
+                            
+                            # Jeda antar request untuk hindari rate limit
+                            if idx < len(top_stocks) - 1:
+                                time.sleep(1.5)
                     
                     # Gabungkan semua analisis
                     if breakout_analysis or detailed_analysis:
@@ -140,13 +169,13 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                                 GEMINI SENIOR HEDGE FUND ANALYST
                             </h3>
                             
-                            {f'<div style="background: rgba(255,215,0,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px;">{breakout_analysis.replace(chr(10), "<br>")}</div>' if breakout_analysis else ''}
+                            {f'<div style="background: rgba(255,215,0,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 5px solid #ffd700;">{breakout_analysis.replace(chr(10), "<br>")}</div>' if breakout_analysis else ''}
                             
                             {detailed_analysis}
                             
                             <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-top: 20px;">
                                 <p style="font-size: 12px; color: #aaa; margin: 0; font-style: italic;">
-                                    ⚡ Analisis oleh Google Gemini 2.5 Flash • Gratis 60 RPM • Data real-time dari screener Minervini
+                                    ⚡ Analisis oleh Google Gemini 2.5 Flash • Gratis 60 RPM • Top 5 saham dengan prioritas tertinggi
                                 </p>
                                 <p style="font-size: 11px; color: #666; margin: 5px 0 0 0;">
                                     Disclaimer: Analisis AI bukan rekomendasi investasi. Selalu lakukan verifikasi manual.
@@ -165,10 +194,13 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                     harga = row['Harga']
                     rs = row['RS'] if 'RS' in row else '70'
                     vcp = row['VCP'] if 'VCP' in row else 'N/A'
-                    patterns = row['Patterns'] if 'Patterns' in row else 'Tidak ada pola'
+                    patterns = row['Patterns'] if 'Patterns' in row else ''
                     rr = row['RR_Ratio'] if 'RR_Ratio' in row else '2.9'
                     
                     is_breakout = 'BREAKOUT' in str(patterns).upper()
+                    
+                    # Format pattern dengan fungsi baru
+                    patterns_display = format_patterns(patterns)
                     
                     harga_numeric = parse_price(harga)
                     if harga_numeric > 0:
@@ -228,9 +260,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                             </tr>
                             <tr>
                                 <td style="padding: 10px; background-color: rgba(0,0,0,0.02);"><strong>Chart Patterns:</strong></td>
-                                <td style="padding: 10px; color: {'#d32f2f' if 'BREAKOUT' in patterns else '#27ae60'}; font-weight: 500;">
-                                    {patterns}
-                                </td>
+                                <td style="padding: 10px;">{patterns_display}</td>
                             </tr>
                         </table>
                     </div>
@@ -362,6 +392,17 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                             color: #e74c3c;
                             font-weight: bold;
                         }}
+                        .pattern-empty {{
+                            color: #7f8c8d;
+                            font-style: italic;
+                        }}
+                        .pattern-breakout {{
+                            color: #d32f2f;
+                            font-weight: bold;
+                        }}
+                        .pattern-normal {{
+                            color: #27ae60;
+                        }}
                     </style>
                 </head>
                 <body>
@@ -375,6 +416,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                             <h3 style="color: white; margin-top: 0; margin-bottom: 15px;">📊 RINGKASAN</h3>
                             <p>✅ Total Saham 8/8: <strong style="font-size: 24px;">{total_8}</strong></p>
                             <p>🚀 Saham dengan Breakout: <strong style="font-size: 20px;">{breakout_count}</strong></p>
+                            <p>📊 Saham tanpa pola spesifik: <strong style="font-size: 20px;">{total_8 - breakout_count - (df_88['Patterns'].str.contains('BREAKOUT', na=False).sum() if 'Patterns' in df_88.columns else 0)}</strong></p>
                         </div>
                         
                         {gemini_section}
@@ -396,7 +438,8 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                         <h3>📋 DETAIL SAHAM 8/8</h3>
                         <p style="font-size: 12px; color: #666;">
                             <span class="check-mark">✓</span> = Memenuhi kriteria | 
-                            <span class="x-mark">✗</span> = Tidak memenuhi
+                            <span class="x-mark">✗</span> = Tidak memenuhi |
+                            <span style="color: #7f8c8d; font-style: italic;">Tidak ada pola spesifik</span> = Sideways/trending tanpa pola klasik
                         </p>
                         {table_html}
                         
@@ -406,9 +449,10 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                         <div class="footer">
                             <p>
                                 <span style="background: #27ae60; color: white; padding: 3px 8px; border-radius: 12px;">🚀 BREAKOUT</span> = Harga mendekati resistance + Volume tinggi + Candle kuat<br>
-                                <span style="background: #3498db; color: white; padding: 3px 8px; border-radius: 12px;">🤖 GEMINI AI</span> = Analisis oleh Google Gemini 2.5 Flash (gratis)
+                                <span style="background: #3498db; color: white; padding: 3px 8px; border-radius: 12px;">🤖 GEMINI AI</span> = Analisis oleh Google Gemini 2.5 Flash (gratis)<br>
+                                <span style="background: #7f8c8d; color: white; padding: 3px 8px; border-radius: 12px;">📊 TANPA POLA</span> = Saham 8/8 tanpa pola spesifik (tetap layak trading)
                             </p>
-                            <p><i>Generated by Minervini Screener v12.0 • {wib_time.strftime('%d-%m-%Y %H:%M:%S')} WIB</i></p>
+                            <p><i>Generated by Minervini Screener v12.1 • {wib_time.strftime('%d-%m-%Y %H:%M:%S')} WIB</i></p>
                         </div>
                     </div>
                 </body>
