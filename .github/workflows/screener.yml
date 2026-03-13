@@ -24,20 +24,10 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install --upgrade setuptools wheel
       
-      - name: Install all dependencies
+      - name: Install dependencies
         run: |
-          # Install semua library yang diperlukan
           pip install yfinance pandas numpy curl_cffi requests pytz
-          
-          # Coba install m-patternpy (opsional)
-          pip install m-patternpy || echo "⚠️ m-patternpy tidak tersedia, akan pakai pattern manual"
-      
-      - name: Verify installations
-        run: |
-          python -c "import yfinance; print('✅ yfinance OK')"
-          python -c "import pandas; print('✅ pandas OK')"
-          python -c "import numpy; print('✅ numpy OK')"
-          python -c "import curl_cffi; print('✅ curl_cffi OK')"
+          pip install openai  # Untuk DeepSeek API (kompatibel dengan OpenAI SDK)
       
       - name: Run screener
         env:
@@ -45,6 +35,7 @@ jobs:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
           GOOGLE_SHEETS_WEBHOOK: ${{ secrets.GOOGLE_SHEETS_WEBHOOK }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: python main.py
         
       - name: Upload results
