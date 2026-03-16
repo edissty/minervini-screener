@@ -1,7 +1,6 @@
 # ============================================
-# EMAIL_SENDER.PY - MINERVINI SCREENER v12.1
-# Dengan Google Gemini Senior Hedge Fund Analyst
-# Menampilkan "Tidak ada pola spesifik" untuk pattern kosong
+# EMAIL_SENDER.PY - MINERVINI SCREENER v13.0
+# Dengan Google Gemini Independent Analysis
 # ============================================
 
 import smtplib
@@ -51,7 +50,6 @@ def format_patterns(patterns_str):
     if not patterns_str or patterns_str.strip() == "":
         return '<span style="color: #7f8c8d; font-style: italic;">Tidak ada pola spesifik (sideways/trending)</span>'
     else:
-        # Deteksi breakout untuk styling khusus
         if 'BREAKOUT' in patterns_str.upper():
             return f'<span style="color: #d32f2f; font-weight: bold;">{patterns_str}</span>'
         else:
@@ -59,7 +57,7 @@ def format_patterns(patterns_str):
 
 def send_email_report(df, email_to, email_from, password, criteria, smtp_server='smtp.gmail.com', port=587):
     """
-    Mengirim laporan hasil screening ke email dengan analisis Gemini
+    Mengirim laporan hasil screening ke email dengan analisis Gemini independen
     """
     print("\n" + "=" * 50)
     print("📧 PROSES KIRIM EMAIL")
@@ -75,7 +73,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
         msg = MIMEMultipart()
         msg['From'] = email_from
         msg['To'] = email_to
-        msg['Subject'] = f"📊 MINERVINI SCREENER 8/8 + GEMINI ANALYSIS - {wib_time.strftime('%d-%m-%Y %H:%M')} WIB"
+        msg['Subject'] = f"📊 MINERVINI SCREENER 8/8 + GEMINI INDEPENDENT ANALYSIS - {wib_time.strftime('%d-%m-%Y %H:%M')} WIB"
         
         if df is not None and not df.empty:
             # Filter hanya 8/8
@@ -101,17 +99,11 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                 total_8 = len(df_88)
                 breakout_count = df_88['Patterns'].str.contains('BREAKOUT', na=False).sum() if 'Patterns' in df_88.columns else 0
                 
-                # ===== GEMINI ANALYSIS =====
+                # ===== GEMINI INDEPENDENT ANALYSIS =====
                 if analyst.available:
-                    print("\n🤖 Memanggil Gemini Senior Hedge Fund Analyst...")
+                    print("\n🤖 Memanggil Gemini untuk analisis independen...")
                     
-                    # Analisis breakout stocks (ringkasan)
-                    breakout_analysis = analyst.analyze_breakout_stocks(df_88)
-                    
-                    # Analisis detail untuk top 5 saham (prioritas breakout dulu)
-                    detailed_analysis = ""
-                    
-                    # Urutkan: breakout dulu, lalu RS tertinggi
+                    # Urutkan saham: breakout dulu, lalu RS tertinggi
                     df_sorted = df_88.copy()
                     if 'Patterns' in df_sorted.columns:
                         df_sorted['HasBreakout'] = df_sorted['Patterns'].str.contains('BREAKOUT', na=False).astype(int)
@@ -119,66 +111,72 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                     else:
                         df_sorted = df_sorted.sort_values(['RS'], ascending=[False])
                     
-                    top_stocks = df_sorted.head(5)
+                    # Ambil 5 ticker teratas
+                    top_tickers = df_sorted.head(5)['Ticker'].tolist()
+                    ticker_list = ", ".join(top_tickers)
                     
-                    for idx, (_, row) in enumerate(top_stocks.iterrows()):
-                        analysis = analyst.analyze_stock(row.to_dict())
-                        if analysis and not analysis.startswith('Error'):
-                            # Format pattern untuk tampilan
-                            patterns_display = format_patterns(row.get('Patterns', ''))
-                            
-                            detailed_analysis += f"""
-                            <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); 
-                                        color: #f0f0f0; padding: 18px; margin: 15px 0; border-radius: 12px; 
-                                        border-left: 5px solid #ffd700;">
-                                <h4 style="color: #ffd700; margin-top: 0; margin-bottom: 10px; font-size: 18px; display: flex; align-items: center;">
-                                    📊 {row['Ticker']} - Senior Hedge Fund Analysis
-                                    {f'<span style="background-color: #ffc107; color: #000; padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-left: 10px;">🚀 BREAKOUT</span>' if 'BREAKOUT' in str(row.get('Patterns','')).upper() else ''}
-                                </h4>
-                                <div style="font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.7; color: #e0e0e0;">
-                                    {analysis.replace(chr(10), '<br>')}
-                                </div>
-                                <div style="margin-top: 10px; font-size: 12px; color: #888; border-top: 1px solid #333; padding-top: 8px; display: flex; justify-content: space-between; align-items: center;">
-                                    <span>
-                                        <span style="background-color: #27ae60; color: white; padding: 2px 8px; border-radius: 12px; font-weight: bold;">
-                                            RS: {row.get('RS', 'N/A')}
-                                        </span>
-                                        <span style="background-color: #3498db; color: white; padding: 2px 8px; border-radius: 12px; margin-left: 5px; font-weight: bold;">
-                                            VCP: {row.get('VCP', 'N/A')}
-                                        </span>
-                                    </span>
-                                    <span style="font-style: italic;">
-                                        {patterns_display}
-                                    </span>
-                                </div>
+                    # Analisis komparatif untuk semua 5 saham
+                    comparative_analysis = analyst.analyze_multiple_independent(top_tickers)
+                    
+                    # Analisis individu untuk setiap saham
+                    individual_analysis = ""
+                    for i, ticker in enumerate(top_tickers):
+                        print(f"   Menganalisis {ticker}...")
+                        analysis = analyst.analyze_stock_independent(ticker)
+                        
+                        # Cari data saham untuk badge breakout
+                        stock_row = df_sorted[df_sorted['Ticker'] == ticker].iloc[0]
+                        has_breakout = 'BREAKOUT' in str(stock_row.get('Patterns', '')).upper()
+                        breakout_badge = '<span style="background-color: #ffc107; color: #000; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left: 8px;">🚀 BREAKOUT</span>' if has_breakout else ''
+                        
+                        individual_analysis += f"""
+                        <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); 
+                                    color: #f0f0f0; padding: 20px; margin: 20px 0; border-radius: 12px; 
+                                    border-left: 5px solid #ffd700;">
+                            <h4 style="color: #ffd700; margin-top: 0; display: flex; align-items: center; flex-wrap: wrap;">
+                                📊 {ticker} - Independent Minervini Analysis {breakout_badge}
+                            </h4>
+                            <div style="font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6;">
+                                {analysis.replace(chr(10), '<br>')}
                             </div>
-                            """
-                            
-                            # Jeda antar request untuk hindari rate limit
-                            if idx < len(top_stocks) - 1:
-                                time.sleep(1.5)
+                        </div>
+                        """
+                        
+                        # Jeda antar request untuk hindari rate limit
+                        if i < len(top_tickers) - 1:
+                            time.sleep(2)
                     
                     # Gabungkan semua analisis
-                    if breakout_analysis or detailed_analysis:
+                    if comparative_analysis or individual_analysis:
                         gemini_section = f"""
                         <div style="background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%); 
                                     color: white; padding: 25px; border-radius: 15px; margin: 25px 0;
                                     border: 2px solid #ffd700; box-shadow: 0 10px 20px rgba(0,0,0,0.3);">
                             <h3 style="color: #ffd700; margin-top: 0; margin-bottom: 20px; display: flex; align-items: center; font-size: 24px;">
                                 <span style="font-size: 32px; margin-right: 15px;">🤖</span> 
-                                GEMINI SENIOR HEDGE FUND ANALYST
+                                GEMINI INDEPENDENT ANALYSIS
                             </h3>
                             
-                            {f'<div style="background: rgba(255,215,0,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 5px solid #ffd700;">{breakout_analysis.replace(chr(10), "<br>")}</div>' if breakout_analysis else ''}
+                            <p style="margin-bottom: 20px; padding: 15px; background: rgba(255,215,0,0.1); border-radius: 10px; font-size: 16px;">
+                                <strong>🔍 5 SAHAM TERATAS (Prioritas Screener):</strong> {ticker_list}
+                            </p>
                             
-                            {detailed_analysis}
+                            <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 25px;">
+                                <h4 style="color: #ffaa00; margin-top: 0; margin-bottom: 15px;">🔥 PERBANDINGAN & PRIORITAS (Versi AI)</h4>
+                                <div style="font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.7;">
+                                    {comparative_analysis.replace(chr(10), '<br>') if comparative_analysis else 'Analisis komparatif tidak tersedia'}
+                                </div>
+                            </div>
                             
-                            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-top: 20px;">
+                            <h4 style="color: #ffaa00; margin: 25px 0 15px;">📊 ANALISIS DETAIL 8 KRITERIA MINERVINI PER SAHAM</h4>
+                            {individual_analysis}
+                            
+                            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-top: 25px;">
                                 <p style="font-size: 12px; color: #aaa; margin: 0; font-style: italic;">
-                                    ⚡ Analisis oleh Google Gemini 2.5 Flash • Gratis 60 RPM • Top 5 saham dengan prioritas tertinggi
+                                    ⚡ Analisis independen oleh Google Gemini 2.5 Flash • Menerapkan 8 kriteria Minervini versi AI • Tanpa data screener
                                 </p>
                                 <p style="font-size: 11px; color: #666; margin: 5px 0 0 0;">
-                                    Disclaimer: Analisis AI bukan rekomendasi investasi. Selalu lakukan verifikasi manual.
+                                    Disclaimer: Bandingkan dengan hasil screener Anda. Keputusan akhir tetap di tangan Anda.
                                 </p>
                             </div>
                         </div>
@@ -187,7 +185,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                 # Buat tabel HTML untuk ringkasan
                 table_html = df_88.to_html(index=False, escape=False, classes='screening-table')
                 
-                # Buat trading plan untuk setiap saham 8/8
+                # Buat trading plan untuk setiap saham 8/8 (berdasarkan data screener)
                 trading_plans_html = ""
                 for idx, row in df_88.iterrows():
                     ticker = row['Ticker']
@@ -198,16 +196,14 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                     rr = row['RR_Ratio'] if 'RR_Ratio' in row else '2.9'
                     
                     is_breakout = 'BREAKOUT' in str(patterns).upper()
-                    
-                    # Format pattern dengan fungsi baru
                     patterns_display = format_patterns(patterns)
                     
                     harga_numeric = parse_price(harga)
                     if harga_numeric > 0:
                         entry_price = harga_numeric
-                        stop_loss = entry_price * 0.93  # 7% stop loss
-                        target1 = entry_price * 1.20    # 20% target
-                        target2 = entry_price * 1.40    # 40% target
+                        stop_loss = entry_price * 0.93
+                        target1 = entry_price * 1.20
+                        target2 = entry_price * 1.40
                         
                         risk = entry_price - stop_loss
                         reward = target1 - entry_price
@@ -231,7 +227,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                     trading_plans_html += f"""
                     <div style="background-color: {card_color}; padding: 20px; margin: 20px 0; border-left: 6px solid {border_color}; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.05);">
                         <h4 style="margin-top: 0; color: #2c3e50; font-size: 20px; display: flex; align-items: center;">
-                            📈 {ticker} - Trading Plan {badge}
+                            📈 {ticker} - Trading Plan (Screener) {badge}
                         </h4>
                         <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
                             <tr>
@@ -407,22 +403,21 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                 </head>
                 <body>
                     <div class="container">
-                        <h2>📈 MINERVINI SCREENER + GEMINI AI ANALYST</h2>
+                        <h2>📈 MINERVINI SCREENER + GEMINI INDEPENDENT ANALYSIS</h2>
                         <p style="font-size: 16px; color: #555;">
                             <strong>Waktu Screening:</strong> {wib_time.strftime('%d-%m-%Y %H:%M:%S')} WIB
                         </p>
                         
                         <div class="summary-box">
-                            <h3 style="color: white; margin-top: 0; margin-bottom: 15px;">📊 RINGKASAN</h3>
+                            <h3 style="color: white; margin-top: 0; margin-bottom: 15px;">📊 RINGKASAN SCREENER</h3>
                             <p>✅ Total Saham 8/8: <strong style="font-size: 24px;">{total_8}</strong></p>
                             <p>🚀 Saham dengan Breakout: <strong style="font-size: 20px;">{breakout_count}</strong></p>
-                            <p>📊 Saham tanpa pola spesifik: <strong style="font-size: 20px;">{total_8 - breakout_count - (df_88['Patterns'].str.contains('BREAKOUT', na=False).sum() if 'Patterns' in df_88.columns else 0)}</strong></p>
                         </div>
                         
                         {gemini_section}
                         
                         <div class="criteria-box">
-                            <h3 style="margin-top: 0;">🎯 8 KRITERIA MINERVINI</h3>
+                            <h3 style="margin-top: 0;">🎯 8 KRITERIA MINERVINI (Versi Screener)</h3>
                             <ul class="criteria-list">
                                 <li><strong>C1:</strong> Harga > MA150 & MA200</li>
                                 <li><strong>C2:</strong> MA150 > MA200</li>
@@ -435,24 +430,22 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
                             </ul>
                         </div>
                         
-                        <h3>📋 DETAIL SAHAM 8/8</h3>
+                        <h3>📋 DETAIL SAHAM 8/8 (Hasil Screener)</h3>
                         <p style="font-size: 12px; color: #666;">
                             <span class="check-mark">✓</span> = Memenuhi kriteria | 
-                            <span class="x-mark">✗</span> = Tidak memenuhi |
-                            <span style="color: #7f8c8d; font-style: italic;">Tidak ada pola spesifik</span> = Sideways/trending tanpa pola klasik
+                            <span class="x-mark">✗</span> = Tidak memenuhi
                         </p>
                         {table_html}
                         
-                        <h3>📊 TRADING PLAN DETAIL (8/8)</h3>
+                        <h3>📊 TRADING PLAN BERDASARKAN SCREENER</h3>
                         {trading_plans_html}
                         
                         <div class="footer">
                             <p>
-                                <span style="background: #27ae60; color: white; padding: 3px 8px; border-radius: 12px;">🚀 BREAKOUT</span> = Harga mendekati resistance + Volume tinggi + Candle kuat<br>
-                                <span style="background: #3498db; color: white; padding: 3px 8px; border-radius: 12px;">🤖 GEMINI AI</span> = Analisis oleh Google Gemini 2.5 Flash (gratis)<br>
-                                <span style="background: #7f8c8d; color: white; padding: 3px 8px; border-radius: 12px;">📊 TANPA POLA</span> = Saham 8/8 tanpa pola spesifik (tetap layak trading)
+                                <span style="background: #27ae60; color: white; padding: 3px 8px; border-radius: 12px;">🚀 BREAKOUT</span> = Deteksi screener<br>
+                                <span style="background: #3498db; color: white; padding: 3px 8px; border-radius: 12px;">🤖 GEMINI AI</span> = Analisis independen (8 kriteria Minervini versi AI)
                             </p>
-                            <p><i>Generated by Minervini Screener v12.1 • {wib_time.strftime('%d-%m-%Y %H:%M:%S')} WIB</i></p>
+                            <p><i>Generated by Minervini Screener v13.0 • {wib_time.strftime('%d-%m-%Y %H:%M:%S')} WIB</i></p>
                         </div>
                     </div>
                 </body>
@@ -497,7 +490,7 @@ def send_email_report(df, email_to, email_from, password, criteria, smtp_server=
         server.send_message(msg)
         server.quit()
         
-        print("✅ EMAIL DENGAN GEMINI ANALYSIS BERHASIL DIKIRIM!")
+        print("✅ EMAIL DENGAN GEMINI INDEPENDENT ANALYSIS BERHASIL DIKIRIM!")
         return True
         
     except Exception as e:
